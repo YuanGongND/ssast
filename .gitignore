@@ -4,3 +4,5 @@
 *.pyc
 pretrained_model/*
 !pretrained_model/README.md
+src/model/check_load_model.py
+src/model/copy_process_pretrain.py

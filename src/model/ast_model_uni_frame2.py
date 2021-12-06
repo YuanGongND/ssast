@@ -15,13 +15,10 @@ sys.path.append("/data/sls/scratch/yuangong/aed-trans/src/")
 from timm.models.layers import trunc_normal_
 import timm
 import numpy as np
-from torch.cuda.amp import autocast
 from timm.models.layers import to_2tuple
-from linformer import LinformerSelfAttention
 from random import randrange
 from matplotlib import pyplot as plt
 import random
-import os
 
 # override the timm package to relax the input shape constraint.
 class PatchEmbed(nn.Module):
@@ -54,63 +51,41 @@ def get_sinusoid_encoding(n_position, d_hid):
 
     return torch.FloatTensor(sinusoid_table).unsqueeze(0)
 
-# linear attention block
-class LinearBlock(nn.Module):
-    def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
-                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm, seq_len=1024):
-        super().__init__()
-        self.norm1 = norm_layer(dim)
-        self.attn = LinformerSelfAttention(dim, heads=num_heads, seq_len=seq_len)
-        # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
-        self.drop_path = timm.layers.DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = timm.models.vision_transformer.Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
-
-    def forward(self, x):
-        x = x + self.drop_path(self.attn(self.norm1(x)))
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
-
-class ASTModelUniFrame2(nn.Module):
+class ASTModel(nn.Module):
     def __init__(self, label_dim=527,
                  fshape=128, tshape=2,
                  fstride=128, tstride=2,
                  input_fdim=128, input_tdim=1024,
-                 imagenet_pretrain=True, audioset_pretrain=False,
-                 linformer=False, sinpos=False,
-                 model_size='base384',
-                 mask_patch=0, contnum=0, pretrain_path=None):
+                 audioset_pretrain=False,
+                 model_size='base384', pretrain_path=None):
 
-        super(ASTModelUniFrame2, self).__init__()
-        print('---------------SSL AST Model Summary---------------')
+        super(ASTModel, self).__init__()
         assert timm.__version__ == '0.4.5', 'Please use timm == 0.4.5, the code might not be compatible with newer versions.'
-        print('ImageNet pretraining: {:s}, AudioSet pretraining: {:s}'.format(str(imagenet_pretrain), str(audioset_pretrain)))
-        print('now use continuous mask')
 
         # override timm input shape restriction
         timm.models.vision_transformer.PatchEmbed = PatchEmbed
 
+        # initialize the model from timm package
         if audioset_pretrain == False:
             # if AudioSet pretraining is not used (but ImageNet pretraining may still apply)
             if model_size == 'tiny224':
-                self.v = timm.create_model('vit_deit_tiny_distilled_patch16_224', pretrained=imagenet_pretrain)
+                self.v = timm.create_model('vit_deit_tiny_distilled_patch16_224', pretrained=False)
                 self.heads, self.depth = 3, 12
                 self.cls_token_num = 2
             elif model_size == 'small224':
-                self.v = timm.create_model('vit_deit_small_distilled_patch16_224', pretrained=imagenet_pretrain)
+                self.v = timm.create_model('vit_deit_small_distilled_patch16_224', pretrained=False)
                 self.heads, self.depth = 6, 12
                 self.cls_token_num = 2
             elif model_size == 'base224':
-                self.v = timm.create_model('vit_deit_base_distilled_patch16_224', pretrained=imagenet_pretrain)
+                self.v = timm.create_model('vit_deit_base_distilled_patch16_224', pretrained=False)
                 self.heads, self.depth = 12, 12
                 self.cls_token_num = 2
             elif model_size == 'base384':
-                self.v = timm.create_model('vit_deit_base_distilled_patch16_384', pretrained=imagenet_pretrain)
+                self.v = timm.create_model('vit_deit_base_distilled_patch16_384', pretrained=False)
                 self.heads, self.depth = 12, 12
                 self.cls_token_num = 2
             elif model_size == 'base384_nokd':
-                self.v = timm.create_model('vit_deit_base_patch16_384', pretrained=imagenet_pretrain)
+                self.v = timm.create_model('vit_deit_base_patch16_384', pretrained=False)
                 self.heads, self.depth = 12, 12
                 self.cls_token_num = 1
             else:
@@ -119,49 +94,27 @@ class ASTModelUniFrame2(nn.Module):
             self.original_num_patches = self.v.patch_embed.num_patches
             self.oringal_hw = int(self.original_num_patches ** 0.5)
             self.original_embedding_dim = self.v.pos_embed.shape[2]
-            self.mlp_head = nn.Sequential(nn.LayerNorm(self.original_embedding_dim), nn.Linear(self.original_embedding_dim, label_dim))
-            # TODO: remove this layer after fusion is tested
-            self.mlp_head2 = nn.Sequential(nn.LayerNorm(self.original_embedding_dim), nn.Linear(self.original_embedding_dim, label_dim))
-            # TODO: concatenate cls and avgtoken for finetuning
-            self.mlp_head3 = nn.Sequential(nn.LayerNorm(self.original_embedding_dim * 2), nn.Linear(self.original_embedding_dim * 2, label_dim))
 
-            self.embedding_weight = nn.Parameter(torch.tensor([1 / self.depth] * self.depth))
-            # the weight to balance [cls+dist], and all sequence tokens
-            self.output_weight = nn.Parameter(torch.tensor([0.5] * 2))
+            # SSL Pretraining Code
+            self.softmax = nn.Softmax(dim=-1)
+            self.lsoftmax = nn.LogSoftmax(dim=-1)
+            self.fshape, self.tshape = fshape, tshape
+            self.fstride, self.tstride = fstride, tstride
 
-            # SSL Pretraining Stuff
-            # only initialize these layer for pretraining, this avoids the model loading mismatch between up/down stream tasks
-            if mask_patch != 0:
-                print('currently in pretraining mode with {:d} masked patchs and clustering factor of {:d}'. format(mask_patch, contnum))
-                self.mask_patch = mask_patch
-                self.softmax = nn.Softmax(dim=-1)
-                self.lsoftmax = nn.LogSoftmax(dim=-1)
-                self.mask_correct = torch.nn.Parameter(torch.arange(0, self.mask_patch), requires_grad=False)
-                self.contnum = contnum
-                self.fshape, self.tshape = fshape, tshape
-                self.fstride, self.tstride = fstride, tstride
+            # masked patch classification (discriminative objective) layer
+            # we use two layers for pretext task, but using a single layer has similar performance.
+            # we map the output of transformer (768-dim for base model) to 256-dim patch input space, and then dot product with flattened patch input (also 256-dim) to calculate loss.
+            # alternatively, you can map the output of transformer to 768-dim patch embedding space, and dot product with patch embedding. Performance-wise they are similar, but map to 256 space is more efficient.
+            self.cpredlayer = nn.Sequential(nn.Linear(self.original_embedding_dim, self.original_embedding_dim), nn.ReLU(), nn.Linear(self.original_embedding_dim, 256))
+            # masked patch reconstruction (generative objective) layer
+            self.gpredlayer = nn.Sequential(nn.Linear(self.original_embedding_dim, self.original_embedding_dim), nn.ReLU(), nn.Linear(self.original_embedding_dim, 256))
+            self.unfold = torch.nn.Unfold(kernel_size=(fshape, tshape), stride=(fstride, tstride))
 
-                # classification prediction layer
-                # print('now use single layer prediction layer')
-                # self.cpredlayer = nn.Linear(self.original_embedding_dim, 256)
-                # TODO: fix it after test
-                print('now use two layer prediction layer')
-                self.cpredlayer = nn.Sequential(nn.Linear(self.original_embedding_dim, self.original_embedding_dim), nn.ReLU(), nn.Linear(self.original_embedding_dim, 256))
-                # generation prediction layer
-                #self.gpredlayer = nn.Linear(self.original_embedding_dim, fshape*tshape)
-                print('now use two layer prediction layer')
-                self.gpredlayer = nn.Sequential(nn.Linear(self.original_embedding_dim, self.original_embedding_dim), nn.ReLU(), nn.Linear(self.original_embedding_dim, 256))
-                # unfold used for generation
-                self.unfold = torch.nn.Unfold(kernel_size=(fshape, tshape), stride=(fstride, tstride))
-                #print('now use two-layer prediction layer')
-                # self.predlayer = nn.Sequential(nn.Linear(self.original_embedding_dim, self.original_embedding_dim), nn.ReLU(), nn.Linear(self.original_embedding_dim, self.original_embedding_dim))
+            # we use learnable mask embedding (follow the BEIT paper), but using a fixed mask embedding (e.g., 0) leads to same performance.
+            self.mask_embed = nn.Parameter(torch.zeros([1, 1, self.original_embedding_dim]))
+            self.mask_embed = torch.nn.init.xavier_normal_(self.mask_embed)
 
-                # TODO: fix it after test
-                # the learnable mask embedding
-                self.mask_embed = nn.Parameter(torch.zeros([1, 1, self.original_embedding_dim]))
-                self.mask_embed = torch.nn.init.xavier_normal_(self.mask_embed)
-
-            # automatcially get the intermediate shape
+            # get the intermediate shape
             f_dim, t_dim = self.get_shape(fstride, tstride, input_fdim, input_tdim, fshape, tshape)
             num_patches = f_dim * t_dim
             self.num_patches = num_patches
@@ -171,58 +124,32 @@ class ASTModelUniFrame2(nn.Module):
             print('patch array dimension: frequency: {:d}, time: {:d}'.format(f_dim, t_dim))
             print('number of patches={:d}'.format(num_patches))
 
-            # the linear projection layer
+            # the linear patch projection layer, use 1 channel for spectrogram rather than the original 3 channels for RGB images.
             new_proj = torch.nn.Conv2d(1, self.original_embedding_dim, kernel_size=(fshape, tshape), stride=(fstride, tstride))
-            if imagenet_pretrain == True:
-                new_proj.weight = torch.nn.Parameter(torch.sum(self.v.patch_embed.proj.weight, dim=1).unsqueeze(1))
-                new_proj.bias = self.v.patch_embed.proj.bias
             self.v.patch_embed.proj = new_proj
 
-            # if not use imagenet pretrained model, just randomly initialize a learnable positional embedding
-            # TODO can use sinusoidal positional embedding instead
-            if sinpos == True:
-                print('sinusoidal positional embedding is used.')
-                new_pos_embed = nn.Parameter(
-                    get_sinusoid_encoding(self.v.patch_embed.num_patches + self.cls_token_num, self.original_embedding_dim),
-                    requires_grad=False)
-            else:
-                print('trainable positional embedding is used.')
-                new_pos_embed = nn.Parameter(torch.zeros(1, self.v.patch_embed.num_patches + self.cls_token_num, self.original_embedding_dim))
+            # use trainable positional embedding
+            new_pos_embed = nn.Parameter(torch.zeros(1, self.v.patch_embed.num_patches + self.cls_token_num, self.original_embedding_dim))
             self.v.pos_embed = new_pos_embed
             trunc_normal_(self.v.pos_embed, std=.02)
 
         elif audioset_pretrain == True:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            pretrain_base_path = ''
-            sd = torch.load(pretrain_base_path + '/' + pretrain_path, map_location=device)
+            sd = torch.load(pretrain_path, map_location=device)
 
-            # check if it is a supervised pretrained model, or self supervissed model
-            # SSL with no split overlap has 514 pos embedding, supervised with 6 split has an overlap of 1214 pos embedding
-            # can be used to judge if it is an SSL or supervised pretrained model
-
-            save_mdl_pos = sd['module.v.pos_embed'].shape[1]
-            # if SSL
-
-            print('now loading a SSL pretrained model')
-            print('now load model from ' + pretrain_path)
-            audio_model = ASTModelUniFrame2(label_dim=527, fstride=128, tstride=2, fshape=128, tshape=2, input_fdim=128, input_tdim=1024,
+            print('now load a SSL pretrained model from ' + pretrain_path)
+            audio_model = ASTModel(label_dim=527, fstride=128, tstride=2, fshape=128, tshape=2, input_fdim=128, input_tdim=1024,
                                       imagenet_pretrain=False, audioset_pretrain=False, model_size=model_size)
             audio_model = torch.nn.DataParallel(audio_model)
             audio_model.load_state_dict(sd, strict=False)
-            # everything is based on self, not audio_model
+
             self.v = audio_model.module.v
             self.original_embedding_dim = self.v.pos_embed.shape[2]
             self.cls_token_num = audio_model.module.cls_token_num
 
-            # reinitialize all mlp heads
+            # mlp head for fine-tuning
             self.mlp_head = nn.Sequential(nn.LayerNorm(self.original_embedding_dim),
                                           nn.Linear(self.original_embedding_dim, label_dim))
-            self.mlp_head2 = nn.Sequential(nn.LayerNorm(self.original_embedding_dim),
-                                           nn.Linear(self.original_embedding_dim, label_dim))
-            self.mlp_head3 = nn.Sequential(nn.LayerNorm(self.original_embedding_dim * 2),
-                                           nn.Linear(self.original_embedding_dim * 2, label_dim))
-
-            self.output_weight = nn.Parameter(torch.tensor([0.5] * 2))
 
             f_dim, t_dim = self.get_shape(fstride, tstride, input_fdim, input_tdim, fshape, tshape)
             num_patches = f_dim * t_dim
@@ -231,8 +158,11 @@ class ASTModelUniFrame2(nn.Module):
             print('number of patches={:d}'.format(num_patches))
 
             # if the stride of the pretrained model is different with that for fine-tuning.
+            # generally they should be different as patch overlapping is not used in pretraining.
             if fstride != 128 or tstride != 2:
+                # initialize a new patch embedding layer with desired new stride.
                 new_proj = torch.nn.Conv2d(1, self.original_embedding_dim, kernel_size=(fshape, tshape), stride=(fstride, tstride))
+                # but the weights of patch embedding layer is still got from the pretrained model
                 new_proj.weight = torch.nn.Parameter(torch.sum(self.v.patch_embed.proj.weight, dim=1).unsqueeze(1))
                 new_proj.bias = self.v.patch_embed.proj.bias
                 self.v.patch_embed.proj = new_proj
@@ -268,57 +198,7 @@ class ASTModelUniFrame2(nn.Module):
         mask_id = list(set(mask_id))
         return torch.tensor(mask_id[:mask_size])
 
-    def gen_maskid_square(self, sequence_len=512, mask_size=100, max_cont=3):
-        mask_id = []
-        while len(list(set(mask_id))) <= mask_size:
-            start_id = randrange(sequence_len)
-            cont = randrange(max_cont)
-            # cont = 2
-            cur_mask = []
-            for i in range(-cont + 1, cont):
-                for j in range(-cont + 1, cont):
-                    mask_cand = start_id + 64 * i + j
-                    if mask_cand > 0 and mask_cand < sequence_len:
-                        cur_mask.append(mask_cand)
-            mask_id = mask_id + cur_mask
-        mask_id = list(set(mask_id))[:mask_size]
-        return torch.tensor(mask_id)
-
-    def gen_maskid_square2(self, sequence_len=512, mask_size=100, cont=3):
-        mask_id = []
-        while len(list(set(mask_id))) <= mask_size:
-            start_id = randrange(sequence_len)
-            # fix the cont number
-            cont = cont
-            cur_mask = []
-            for i in range(0, cont):
-                for j in range(0, cont):
-                    mask_cand = start_id + 64 * i + j
-                    if mask_cand > 0 and mask_cand < sequence_len:
-                        cur_mask.append(mask_cand)
-            mask_id = mask_id + cur_mask
-        mask_id = list(set(mask_id))[:mask_size]
-        return torch.tensor(mask_id)
-
-    def gen_maskid_square3(self, sequence_len=512, mask_size=100, cont=3):
-        mask_id = []
-        cont=randrange(cont) + 1
-        while len(list(set(mask_id))) <= mask_size:
-            start_id = randrange(sequence_len)
-            # fix the cont number
-            cont = cont
-            cur_mask = []
-            for i in range(0, cont):
-                for j in range(0, cont):
-                    mask_cand = start_id + 64 * i + j
-                    if mask_cand > 0 and mask_cand < sequence_len:
-                        cur_mask.append(mask_cand)
-            mask_id = mask_id + cur_mask
-        mask_id = list(set(mask_id))[:mask_size]
-        return torch.tensor(mask_id)
-
-    # start mask from 2
-    def gen_maskid_square4(self, sequence_len=512, mask_size=100, cont=3):
+    def gen_maskid_patch(self, sequence_len=512, mask_size=100, cont=3):
         mask_id = []
         if cont > 0:
             cont=randrange(cont) + 3
@@ -339,48 +219,9 @@ class ASTModelUniFrame2(nn.Module):
         mask_id = list(set(mask_id))[:mask_size]
         return torch.tensor(mask_id)
 
-    # mask the entire frame rather then
-    def gen_maskid_frame2(self, sequence_len=512, mask_size=100):
-        mask_id = []
-        cont = randrange(28) + 9
-        # cluster from 9 (3**2) to 36 (6**2), keep it consistent with the patch based methods
-        while len(list(set(mask_id))) <= mask_size:
-            start_id = randrange(sequence_len)
-            # fix the cont number
-            cur_mask = []
-            # mask the entire frame
-            for i in range(cont):
-                mask_cand = start_id + i
-                if mask_cand > 0 and mask_cand < sequence_len:
-                    cur_mask.append(mask_cand)
-            mask_id = mask_id + cur_mask
-        mask_id = list(set(mask_id))[:mask_size]
-        return torch.tensor(mask_id)
-
-    def gen_maskid_frame3(self, sequence_len=512, mask_size=100):
+    # using cluster for frame masking hurts the performance, so just use the naive random sampling
+    def gen_maskid_frame(self, sequence_len=512, mask_size=100):
         mask_id = random.sample(range(0, sequence_len), mask_size)
-        return torch.tensor(mask_id)
-
-    # mask based on enery
-    def gen_maskid_energy(self, sequence_len=512, mask_size=100, max_cont=3, input=None):
-        mask_id = []
-        weight = torch.mean(input, dim=1)
-        #weight = weight - torch.min(weight) + 1e-6
-        #print(torch.min(weight))
-        weight = torch.relu(weight)
-        while len(list(set(mask_id))) <= mask_size:
-            #start_id = np.random.choice(sequence_len, p=weight)
-            start_id = torch.multinomial(weight, 1, replacement=True)[0]
-            cont = randrange(max_cont)
-            # cont = 2
-            cur_mask = []
-            for i in range(-cont + 1, cont):
-                for j in range(-cont + 1, cont):
-                    mask_cand = start_id + 64 * i + j
-                    if mask_cand > 0 and mask_cand < sequence_len:
-                        cur_mask.append(mask_cand)
-            mask_id = mask_id + cur_mask
-        mask_id = list(set(mask_id))[:mask_size]
         return torch.tensor(mask_id)
 
     def finetuningavgtok(self, x):
@@ -400,16 +241,11 @@ class ASTModelUniFrame2(nn.Module):
             x = blk(x)
         x = self.v.norm(x)
 
-        # TODO: change it back after test
-        # x1 = (x[:, 0] + x[:, 1]) / 2
-        # x2 = torch.mean(x[:, 2:, :], dim=1)
-        # x = self.output_weight[0] * x1 + self.output_weight[1] * x2
+        # average output of all tokens except cls token(s)
         x = torch.mean(x[:, self.cls_token_num:, :], dim=1)
-
         x = self.mlp_head(x)
         return x
 
-    #@autocast
     def finetuningcls(self, x):
         B = x.shape[0]
         x = self.v.patch_embed(x)
@@ -427,127 +263,12 @@ class ASTModelUniFrame2(nn.Module):
             x = blk(x)
         x = self.v.norm(x)
 
-        # TODO: change it back after test
+        # if model has two cls tokens (DEIT), average as the clip-level representation
         if self.cls_token_num == 2:
             x = (x[:, 0] + x[:, 1]) / 2
         else:
             x = x[:, 0]
         x = self.mlp_head(x)
-        return x
-
-    #@autocast
-    def finetuningtest1(self, x):
-        B = x.shape[0]
-        x = self.v.patch_embed(x)
-        cls_tokens = self.v.cls_token.expand(B, -1, -1)
-        dist_token = self.v.dist_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, dist_token, x), dim=1)
-        x = x + self.v.pos_embed
-        x = self.v.pos_drop(x)
-        # TODO: fix this after test
-        x_wa = torch.zeros_like(x)
-        for blk_id, blk in enumerate(self.v.blocks):
-            x = blk(x)
-            #print(self.embedding_weight[blk_id])
-            x_wa = x_wa + x * self.embedding_weight[blk_id]
-        x = self.v.norm(x_wa)
-
-        # for blk_id, blk in enumerate(self.v.blocks):
-        #     x = blk(x)
-        #     if blk_id > 999:
-        #         break
-
-        # x = self.v.norm(x)
-
-        #x = (x[:, 0] + x[:, 1]) / 2
-        x = torch.mean(x[:, 2:, :], dim=1)
-
-        x = self.mlp_head(x)
-        return x
-
-    #@autocast
-    # use decision-level fusion for cls token and embedding token.
-    def finetuningfusion1(self, x):
-        B = x.shape[0]
-        x = self.v.patch_embed(x)
-        cls_tokens = self.v.cls_token.expand(B, -1, -1)
-        dist_token = self.v.dist_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, dist_token, x), dim=1)
-        x = x + self.v.pos_embed
-        x = self.v.pos_drop(x)
-
-        for blk_id, blk in enumerate(self.v.blocks):
-            x = blk(x)
-        #x = self.v.norm(x)
-
-        # TODO: change it back after test
-        # x1 = (x[:, 0] + x[:, 1]) / 2
-        # x2 = torch.mean(x[:, 2:, :], dim=1)
-        # x = self.output_weight[0] * x1 + self.output_weight[1] * x2
-
-        x_1 = torch.mean(x[:, 2:, :], dim=1)
-        x_1 = self.mlp_head(x_1)
-
-        x_2 = (x[:, 0, :] + x[:, 1, :]) / 2
-        x_2 = self.mlp_head(x_2)
-
-        x = (x_1 + x_2) / 2
-
-        return x
-
-
-    #@autocast
-    # use decision-level fusion for cls token and embedding token.
-    def finetuningfusion2(self, x):
-        B = x.shape[0]
-        x = self.v.patch_embed(x)
-        cls_tokens = self.v.cls_token.expand(B, -1, -1)
-        dist_token = self.v.dist_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, dist_token, x), dim=1)
-        x = x + self.v.pos_embed
-        x = self.v.pos_drop(x)
-
-        for blk_id, blk in enumerate(self.v.blocks):
-            x = blk(x)
-
-        # TODO: change it back after test
-        #x = self.v.norm(x)
-
-        # TODO: change it back after test
-        # x1 = (x[:, 0] + x[:, 1]) / 2
-        # x2 = torch.mean(x[:, 2:, :], dim=1)
-        # x = self.output_weight[0] * x1 + self.output_weight[1] * x2
-
-        x_1 = torch.mean(x[:, 2:, :], dim=1)
-        x_1 = self.mlp_head(x_1)
-
-        x_2 = (x[:, 0, :] + x[:, 1, :]) / 2
-        x_2 = self.mlp_head(x_2)
-
-        x = x_1 * self.output_weight[0] + x_1 * self.output_weight[1]
-
-        return x
-
-    #@autocast
-    # concatenate cls and avg_token
-    def finetuningcat(self, x):
-        B = x.shape[0]
-        x = self.v.patch_embed(x)
-        cls_tokens = self.v.cls_token.expand(B, -1, -1)
-        dist_token = self.v.dist_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, dist_token, x), dim=1)
-        x = x + self.v.pos_embed
-        x = self.v.pos_drop(x)
-
-        for blk_id, blk in enumerate(self.v.blocks):
-            x = blk(x)
-
-        x_1 = torch.mean(x[:, 2:, :], dim=1)
-        x_2 = (x[:, 0, :] + x[:, 1, :]) / 2
-
-        x = torch.cat([x_1, x_2], dim=-1)
-        x = self.mlp_head3(x)
-
         return x
 
     # mask patch embedding is learnable, random mask size (but same for a specific batch)
@@ -575,7 +296,7 @@ class ASTModelUniFrame2(nn.Module):
         for i in range(B):
             # randomly generate #mask_patch mask indexes without duplicate
             # print('random mask with uniform distribution')
-            mask_index[i] = self.gen_maskid_frame3(512, cur_mask_patch)
+            mask_index[i] = self.gen_maskid_frame(512, cur_mask_patch)
             # copy the masked embeddings, note gradients are stopped in this path
             encode_samples[i] = input[i, mask_index[i], :].clone().detach()
             # mask the encode samples with 0
@@ -660,7 +381,7 @@ class ASTModelUniFrame2(nn.Module):
         mask_dense = torch.ones([x.shape[0], x.shape[1], x.shape[2]], device=x.device)
         for i in range(B):
             # randomly generate #mask_patch mask indexes without duplicate
-            mask_index[i] = self.gen_maskid_frame3(512, cur_mask_patch)
+            mask_index[i] = self.gen_maskid_frame(512, cur_mask_patch)
             # mask the encode samples with 0
             mask_dense[i, mask_index[i], :] = 0
 
@@ -693,85 +414,25 @@ class ASTModelUniFrame2(nn.Module):
 
         return mse, mse
 
-    def reconstruct(self, input):
-        B = input.shape[0]
-        x = self.v.patch_embed(input)
-        # now input in shape [B, 512, 256], where 256=16*16 is the patch
-        input = self.unfold(input).transpose(1, 2)
-
-        # size 12(batch_size) * 100(#mask_patch), index of masked patches
-        mask_index = torch.empty((B, self.mask_patch), device=x.device, requires_grad=False).long()
-        # size 12(batch_size) * 576(sequence_len) * 768(hidden_dim)
-        mask_dense = torch.ones([x.shape[0], x.shape[1], x.shape[2]], device=x.device)
-        for i in range(B):
-            # randomly generate #mask_patch mask indexes without duplicate
-            # mask_index[i] = torch.randperm(self.num_patches)[:self.mask_patch]
-            mask_index[i] = self.gen_maskid_square(512, self.mask_patch, self.contnum)
-            # mask the encode samples with 0
-            mask_dense[i, mask_index[i], :] = 0
-
-        # mask the x, add small number to avoid underflow
-        x = x * mask_dense
-
-        # original deit code
-        cls_tokens = self.v.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
-        dist_token = self.v.dist_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, dist_token, x), dim=1)
-        x = x + self.v.pos_embed
-        x = self.v.pos_drop(x)
-        for blk in self.v.blocks:
-            x = blk(x)
-        x = self.v.norm(x)
-
-        # directly use the AST output of the masked positions as the prediction of the masked embedding
-        pred = input.clone()  # [B, 512, 256]
-        masked = input.clone()
-
-        for i in range(B):
-            pred[i, mask_index[i], :] = self.gpredlayer(x[i, mask_index[i] + 2, :])
-            masked[i, mask_index[i], :] = -1
-
-        # print(pred.shape)
-        # print(masked.shape)
-        fold = torch.nn.Fold(output_size=([128, 1024]), kernel_size=(self.fshape, self.tshape), stride=(self.fstride, self.tstride))
-        pred = fold(pred.transpose(1, 2))
-        masked = fold(masked.transpose(1, 2))
-
-        return pred, masked
-
-    def forward(self, x, task='ft', mask_patch=-1):
+    def forward(self, x, task, mask_patch=-1):
         # expect input x = (batch_size, time_frame_num, frequency_bins), e.g., (12, 1024, 128)
         x = x.unsqueeze(1)
         x = x.transpose(2, 3)
 
-        # for the downstream task fine-tuning
-        if task == 'ftfusion1':
-            # TODO: change it back after test
-            return self.finetuningfusion1(x)
-        elif task == 'ftfusion2':
-            # TODO: change it back after test
-            return self.finetuningfusion2(x)
-        elif task == 'ftavgtok':
-            # TODO: change it back after test
+        # for finetuning (ft), use the mean of all token (patch) output as clip-level representation.
+        # this is default for SSAST fine-tuning as during pretraining, supervision signal is given to each token, not the [cls] token
+        if task == 'ft_avgtok':
             return self.finetuningavgtok(x)
-        elif task == 'ftcls':
-            # TODO: change it back after test
+        # for finetuning (ft), use the [cls] token output as clip-level representation.
+        elif task == 'ft_cls':
             return self.finetuningcls(x)
-        elif task == 'ftcat':
-            # TODO: change it back after test
-            return self.finetuningcat(x)
-        # for masked patch classification task
-        elif task == 'mpc':
-            #return self.mpclearnpatch(x, show_mask=False)
+        # for pretraining, masked patch classification (discriminative objective)
+        elif task == 'pretrain_mpc':
             return self.mpclearnpatchrand(x, show_mask=False, eval_mask=mask_patch)
-        elif task == 'mix':
-            return self.mpclearnpatchrand(x, show_mask=False, eval_mask=mask_patch)
-        elif task == 'mpg':
+        # for pretraining, masked patch reconstruction (generative objective)
+        elif task == 'pretrain_mpg':
             return self.mpgrand(x, eval_mask=mask_patch)
-        elif task == 'reconstruct':
-            return self.reconstruct(x)
         else:
-            print(task)
             raise Exception('Task unrecognized.')
 
 if __name__ == '__main__':

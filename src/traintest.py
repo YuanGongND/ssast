@@ -152,12 +152,6 @@ def train(audio_model, train_loader, test_loader, args):
             loss.backward()
             optimizer.step()
 
-            # # optimiztion if amp is used
-            # optimizer.zero_grad()
-            # scaler.scale(loss).backward()
-            # scaler.step(optimizer)
-            # scaler.update()
-
             # record loss
             loss_meter.update(loss.item(), B)
             batch_time.update(time.time() - end_time)

@@ -1,4 +1,3 @@
-import shutil
 import sys
 import os
 import datetime
@@ -8,13 +7,12 @@ import time
 import torch
 import numpy as np
 import pickle
-from torch.cuda.amp import autocast,GradScaler
 
 def trainmask(audio_model, train_loader, test_loader, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print('Now running on : ' + str(device))
 
-    # Initialize all of the statistics we want to keep track of
+    # initialize all of the statistics we want to keep track of
     batch_time = AverageMeter()
     per_sample_time = AverageMeter()
     data_time = AverageMeter()
@@ -24,41 +22,30 @@ def trainmask(audio_model, train_loader, test_loader, args):
     train_acc_meter = AverageMeter()
     train_nce_meter = AverageMeter()
     progress = []
-    best_epoch, best_cum_epoch, best_mAP, best_acc, best_cum_mAP = 0, 0, -np.inf, -np.inf, -np.inf
+    best_epoch, best_acc = 0, -np.inf
     global_step, epoch = 0, 0
     start_time = time.time()
     exp_dir = args.exp_dir
 
     def _save_progress():
-        progress.append([epoch, global_step, best_epoch, best_mAP, time.time() - start_time])
+        progress.append([epoch, global_step, best_epoch, time.time() - start_time])
         with open("%s/progress.pkl" % exp_dir, "wb") as f:
             pickle.dump(progress, f)
 
     if not isinstance(audio_model, nn.DataParallel):
         audio_model = nn.DataParallel(audio_model)
 
-    if epoch != 0:
-        audio_model.load_state_dict(torch.load("%s/models/audio_model.%d.pth" % (exp_dir, epoch)))
-        print("loaded parameters from epoch %d" % epoch)
-
     audio_model = audio_model.to(device)
     # Set up the optimizer
     audio_trainables = [p for p in audio_model.parameters() if p.requires_grad]
-    print('Total parameter number is : {:.9f} million'.format(sum(p.numel() for p in audio_model.parameters()) / 1000000))
-    print('Total trainable parameter number is : {:.9f} million'.format(sum(p.numel() for p in audio_trainables) / 1000000))
+    print('Total parameter number is : {:.9f} million'.format(sum(p.numel() for p in audio_model.parameters()) / 1e6))
+    print('Total trainable parameter number is : {:.9f} million'.format(sum(p.numel() for p in audio_trainables) / 1e6))
     trainables = audio_trainables
     optimizer = torch.optim.Adam(trainables, args.lr, weight_decay=5e-7, betas=(0.95, 0.999))
 
     # LR scheduler
-    print('auto lr scheduler')
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=args.lr_patience, verbose=True)
-    # print('fix lr scheduler')
-    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10, 20, 30, 35, 40, 45, 50], gamma=0.5, last_epoch=-1)
-
     epoch += 1
-
-    # amp part
-    scaler = GradScaler()
 
     print("current #steps=%s, #epochs=%s" % (global_step, epoch))
     print("start training...")
@@ -67,15 +54,14 @@ def trainmask(audio_model, train_loader, test_loader, args):
     audio_model.train()
 
     # training until break
-    while True:
+    while epoch < args.n_epochs + 1:
         begin_time = time.time()
         end_time = time.time()
         audio_model.train()
         print(datetime.datetime.now())
 
-        # save models before the first epoch
-        if len(train_loader.dataset) > 2e5:
-            torch.save(audio_model.state_dict(), "%s/models/audio_model.%d.pth" % (exp_dir, global_step+1))
+        # save from-scratch models before the first epoch
+        torch.save(audio_model.state_dict(), "%s/models/audio_model.%d.pth" % (exp_dir, global_step+1))
 
         for i, (audio_input, labels) in enumerate(train_loader):
             # measure data loading time
@@ -93,41 +79,29 @@ def trainmask(audio_model, train_loader, test_loader, args):
                     param_group['lr'] = warm_lr
                 print('warm-up learning rate is {:f}'.format(optimizer.param_groups[0]['lr']))
 
-            # single task
-            # #with autocast():
-
-            if args.task != 'mix':
-                #cur_mask_patch = min(int(global_step/args.epoch_iter) * 5 + 100, 400)
-                cur_mask_patch = args.mask_patch
-                #print(cur_mask_patch)
-                acc, loss = audio_model(audio_input, args.task, mask_patch=cur_mask_patch)
+            # if pretrain with discriminative objective
+            if args.task == 'pretrain_mpc':
+                acc, loss = audio_model(audio_input, args.task, mask_patch=args.mask_patch)
+                # this is for multi-gpu support, in our code, loss is calculated in the model
+                # pytorch concatenates the output of each gpu, we thus get mean of the losses of each gpu
                 acc, loss = acc.mean(), loss.mean()
-
-            else:
-                #cur_mask_patch = min(int(global_step/args.epoch_iter) * 5 + 100, 400)
-                cur_mask_patch = args.mask_patch
-                #print(cur_mask_patch)
-                acc1, loss1 = audio_model(audio_input, 'mpc', mask_patch=cur_mask_patch)
-                acc1, loss1 = acc1.mean(), loss1.mean()
-
-                #print('only mask 250 for mpg')
-                acc2, loss2 = audio_model(audio_input, 'mpg', mask_patch=cur_mask_patch)
-                acc2, loss2 = acc2.mean(), loss2.mean()
-
-                acc = acc1
-                #print(loss1, loss2)
+            # if pretrain with generative objective
+            elif args.task == 'pretrain_mpg':
+                loss = audio_model(audio_input, args.task, mask_patch=args.mask_patch)
+                loss = loss.mean()
+                # dirty code to make the code report mse loss for generative objective
+                acc = loss
+            # if pretrain with joint discriminative and generative objective
+            elif args.task == 'pretrain_joint':
+                acc, loss1 = audio_model(audio_input, 'pretrain_mpc', mask_patch=args.mask_patch)
+                acc, loss1 = acc.mean(), loss1.mean()
+                loss2 = audio_model(audio_input, 'pretrain_mpg', mask_patch=args.mask_patch)
+                loss2 = loss2.mean()
                 loss = loss1 + 10 * loss2
 
-            # original optimization
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-            # # amp optimiztion
-            # optimizer.zero_grad()
-            # scaler.scale(loss).backward()
-            # scaler.step(optimizer)
-            # scaler.update()
 
             # record loss
             train_acc_meter.update(acc.detach().cpu().item())
@@ -156,6 +130,8 @@ def trainmask(audio_model, train_loader, test_loader, args):
             end_time = time.time()
             global_step += 1
 
+            # pretraining data is usually very large, save model every epoch is too sparse.
+            # save the model every args.epoch_iter steps.
             epoch_iteration = args.epoch_iter
             if global_step % epoch_iteration == 0:
                 print('---------------- step '+ str(global_step) +' evaluation ----------------')
@@ -171,7 +147,6 @@ def trainmask(audio_model, train_loader, test_loader, args):
 
                 if acc > best_acc:
                     best_acc = acc
-                    best_acc_epoch = equ_epoch
                     torch.save(audio_model.state_dict(), "%s/models/best_audio_model.pth" % (exp_dir))
 
                 torch.save(audio_model.state_dict(), "%s/models/audio_model.%d.pth" % (exp_dir, equ_epoch))
@@ -179,13 +154,12 @@ def trainmask(audio_model, train_loader, test_loader, args):
                     torch.save(optimizer.state_dict(), "%s/models/optim_state.pth" % (exp_dir))
 
                 # if the task is generation, stop after eval mse loss stop improve
-                if args.task == 'mpg':
+                if args.task == 'pretrain_mpg':
+                    # acc_eval is in fact the mse loss, it is dirty code
                     scheduler.step(-acc_eval)
                 else:
                     scheduler.step(acc_eval)
-                #scheduler.step()
 
-                #print('number of params groups:' + str(len(optimizer.param_groups)))
                 print('# {:d}, step {:d}-{:d}, lr: {:e}'.format(equ_epoch, global_step-epoch_iteration, global_step, optimizer.param_groups[0]['lr']))
 
                 _save_progress()
@@ -208,7 +182,6 @@ def trainmask(audio_model, train_loader, test_loader, args):
                 print('---------------- evaluation finished ----------------')
         epoch += 1
 
-
 def validatemask(audio_model, val_loader, args, epoch):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not isinstance(audio_model, nn.DataParallel):
@@ -217,26 +190,29 @@ def validatemask(audio_model, val_loader, args, epoch):
     # switch to evaluate mode
     audio_model.eval()
 
-    end = time.time()
-    N_examples = val_loader.dataset.__len__()
     A_acc = []
     A_nce = []
     with torch.no_grad():
         for i, (audio_input, labels) in enumerate(val_loader):
             audio_input = audio_input.to(device)
 
-            # compute output
-            if args.task != 'mix':
+            # always use mask_patch=400 for evaluation, even the training mask patch number differs.
+            if args.task == 'pretrain_mpc':
                 acc, nce = audio_model(audio_input, args.task, mask_patch=400)
-
                 A_acc.append(torch.mean(acc).cpu())
                 A_nce.append(torch.mean(nce).cpu())
-            else:
-                acc, _ = audio_model(audio_input, 'mpc', mask_patch=400)
-                nce, _ = audio_model(audio_input, 'mpg', mask_patch=400)
+            elif args.task == 'pretrain_mpg':
+                mse = audio_model(audio_input, args.task, mask_patch=400)
+                # this is dirty code to track mse loss, A_acc and A_nce now track mse, not the name suggests
+                A_acc.append(torch.mean(mse).cpu())
+                A_nce.append(torch.mean(mse).cpu())
+            elif args.task == 'pretrain_joint':
+                acc, _ = audio_model(audio_input, 'pretrain_mpc', mask_patch=400)
+                mse = audio_model(audio_input, 'pretrain_mpg', mask_patch=400)
 
                 A_acc.append(torch.mean(acc).cpu())
-                A_nce.append(torch.mean(nce).cpu())
+                # A_nce then tracks the mse loss
+                A_nce.append(torch.mean(mse).cpu())
 
         acc = np.mean(A_acc)
         nce = np.mean(A_nce)

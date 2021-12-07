@@ -155,7 +155,7 @@ class ASTModel(nn.Module):
             # we need to know input_fdim and input_tdim to do positional embedding cut/interpolation.
             # generally it should be better to use same input_fdim during pretraining and finetuning, but input_tdim can be safely different
             audio_model = ASTModel(fstride=p_fshape, tstride=p_tshape, fshape=p_fshape, tshape=p_tshape,
-                                   input_fdim=p_input_fdim, input_tdim=p_input_tdim, pretrain=True, model_size=model_size)
+                                   input_fdim=p_input_fdim, input_tdim=p_input_tdim, pretrain_stage=True, model_size=model_size)
             audio_model = torch.nn.DataParallel(audio_model)
             audio_model.load_state_dict(sd, strict=False)
 

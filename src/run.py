@@ -59,10 +59,10 @@ parser.add_argument("--bal", type=str, default=None, help="use balanced sampling
 # during fine-tuning, using patch split overlapping (i.e., smaller {f,t}stride than {f,t}shape) improves the performance.
 # it is OK to use different {f,t} stride in pretraining and finetuning stages (though fstride is better to keep the same)
 # but {f,t}stride in pretraining and finetuning stages must be consistent.
-parser.add_argument("--fstride", type=int, default=10, help="soft split freq stride, overlap=patch_size-stride")
-parser.add_argument("--tstride", type=int, default=10, help="soft split time stride, overlap=patch_size-stride")
-parser.add_argument("--fshape", type=int, default=16, help="shape of patch on the frequency dimension")
-parser.add_argument("--tshape", type=int, default=16, help="shape of patch on the time dimension")
+parser.add_argument("--fstride", type=int, help="soft split freq stride, overlap=patch_size-stride")
+parser.add_argument("--tstride", type=int, help="soft split time stride, overlap=patch_size-stride")
+parser.add_argument("--fshape", type=int, help="shape of patch on the frequency dimension")
+parser.add_argument("--tshape", type=int, help="shape of patch on the time dimension")
 parser.add_argument('--model_size', help='the size of AST models', type=str, default='base384')
 
 parser.add_argument("--task", type=str, default='ft_cls', help="pretraining or fine-tuning task", choices=["ft_avgtok", "ft_cls", "pretrain_mpc", "pretrain_mpg", "pretrain_joint"])
@@ -77,7 +77,7 @@ parser.add_argument("--epoch_iter", type=int, default=2000, help="for pretrainin
 parser.add_argument("--pretrained_mdl_path", type=str, default='none', help="the ssl pretrained models path")
 parser.add_argument("--head_lr", type=int, default=1, help="the factor of mlp-head_lr/lr, used in some fine-tuning experiments only")
 parser.add_argument("--noise", help='if augment noise in finetuning', type=ast.literal_eval)
-parser.add_argument("--metrics", type=str, default="mAP", help="the main evaluation metrics in finetuning", choices=["mAP", "acc"])
+parser.add_argument("--metrics", type=str, help="the main evaluation metrics in finetuning", choices=["mAP", "acc"])
 parser.add_argument("--lrscheduler_start", type=int, help="when to start decay in finetuning")
 parser.add_argument("--lrscheduler_step", type=int, help="the number of step to decrease the learning rate in finetuning")
 parser.add_argument("--lrscheduler_decay", type=float, help="the learning rate decay ratio in finetuning")

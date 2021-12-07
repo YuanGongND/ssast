@@ -73,7 +73,7 @@ def trainmask(audio_model, train_loader, test_loader, args):
         audio_model.train()
         print(datetime.datetime.now())
 
-        # save model before the first epoch
+        # save models before the first epoch
         if len(train_loader.dataset) > 2e5:
             torch.save(audio_model.state_dict(), "%s/models/audio_model.%d.pth" % (exp_dir, global_step+1))
 
@@ -203,7 +203,7 @@ def trainmask(audio_model, train_loader, test_loader, args):
                 loss_meter.reset()
                 per_sample_dnn_time.reset()
 
-                # change the model back to train mode
+                # change the models back to train mode
                 audio_model.train()
                 print('---------------- evaluation finished ----------------')
         epoch += 1

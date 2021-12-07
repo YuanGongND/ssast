@@ -8,7 +8,7 @@
 import ast_model_uni_frame2
 import torch
 
-# copy the pretrained model
+# copy the pretrained models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ast_mdl = ast_model_uni_frame2.ASTModel(
     fshape=16, tshape=16, fstride=16, tstride=16,

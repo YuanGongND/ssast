@@ -51,18 +51,13 @@ def train(audio_model, train_loader, test_loader, args):
     print('Total parameter number is : {:.3f} million'.format(sum(p.numel() for p in audio_model.parameters()) / 1e6))
     print('Total trainable parameter number is : {:.3f} million'.format(sum(p.numel() for p in trainables) / 1e6))
 
-    # original optimizer
-    #optimizer = torch.optim.Adam(trainables, args.lr, weight_decay=5e-7, betas=(0.95, 0.999))
-
     # diff lr optimizer
-    my_list = ['mlp_head.0.weight', 'mlp_head.0.bias', 'mlp_head.1.weight', 'mlp_head.1.bias']
-    mlp_params = list(filter(lambda kv: kv[0] in my_list, audio_model.module.named_parameters()))
-    print(len(mlp_params))
-    base_params = list(filter(lambda kv: kv[0] not in my_list, audio_model.module.named_parameters()))
-    print(len(base_params))
+    mlp_list = ['mlp_head.0.weight', 'mlp_head.0.bias', 'mlp_head.1.weight', 'mlp_head.1.bias']
+    mlp_params = list(filter(lambda kv: kv[0] in mlp_list, audio_model.module.named_parameters()))
+    base_params = list(filter(lambda kv: kv[0] not in mlp_list, audio_model.module.named_parameters()))
     mlp_params = [i[1] for i in mlp_params]
     base_params = [i[1] for i in base_params]
-    # TODO: change the lr factor back after test
+    # only finetuning small/tiny models on balanced audioset uses different learning rate for mlp head
     print('The mlp header uses {:d} x larger lr'.format(args.head_lr))
     optimizer = torch.optim.Adam([{'params': base_params, 'lr': args.lr}, {'params': mlp_params, 'lr': args.lr * args.head_lr}], weight_decay=5e-7, betas=(0.95, 0.999))
     mlp_lr = optimizer.param_groups[1]['lr']
@@ -71,42 +66,49 @@ def train(audio_model, train_loader, test_loader, args):
     print('Total mlp parameter number is : {:.3f} million'.format(sum(p.numel() for p in mlp_params) / 1e6))
     print('Total base parameter number is : {:.3f} million'.format(sum(p.numel() for p in base_params) / 1e6))
 
-    # dataset specific settings
-    if args.dataset == 'audioset':
-        if len(train_loader.dataset) > 2e5:
-            print('scheduler for full audioset is used')
-            scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [2,3,4,5], gamma=0.5, last_epoch=-1)
-        else:
-            print('scheduler for balanced audioset is used')
-            scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10, 15, 20, 25], gamma=0.5, last_epoch=-1)
-        main_metrics = 'mAP'
-        loss_fn = nn.BCEWithLogitsLoss()
-        warmup = True
-    elif args.dataset == 'esc50':
-        print('scheduler for esc-50 is used')
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, list(range(5,26)), gamma=0.85)
-        main_metrics = 'acc'
-        loss_fn = nn.CrossEntropyLoss()
-        warmup = False
-    elif args.dataset == 'speechcommands':
-        print('scheduler for speech commands is used')
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, list(range(5,26)), gamma=0.85)
-        main_metrics = 'acc'
-        loss_fn = nn.BCEWithLogitsLoss()
-        warmup = False
-    else:
-        raise ValueError('unknown dataset, dataset should be in [audioset, speechcommands, esc50]')
-    print('now training with {:s}, main metrics: {:s}, loss function: {:s}, learning rate scheduler: {:s}'.format(str(args.dataset), str(main_metrics), str(loss_fn), str(scheduler)))
+    # # dataset specific settings
+    # if args.dataset == 'audioset':
+    #     if len(train_loader.dataset) > 2e5:
+    #         print('scheduler for full audioset is used')
+    #         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [2,3,4,5], gamma=0.5, last_epoch=-1)
+    #     else:
+    #         print('scheduler for balanced audioset is used')
+    #         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10, 15, 20, 25], gamma=0.5, last_epoch=-1)
+    #     main_metrics = 'mAP'
+    #     loss_fn = nn.BCEWithLogitsLoss()
+    #     warmup = True
+    # elif args.dataset == 'esc50':
+    #     print('scheduler for esc-50 is used')
+    #     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, list(range(5,26)), gamma=0.85)
+    #     main_metrics = 'acc'
+    #     loss_fn = nn.CrossEntropyLoss()
+    #     warmup = False
+    # elif args.dataset == 'speechcommands':
+    #     print('scheduler for speech commands is used')
+    #     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, list(range(5,26)), gamma=0.85)
+    #     main_metrics = 'acc'
+    #     loss_fn = nn.BCEWithLogitsLoss()
+    #     warmup = False
+    # else:
+    #     raise ValueError('unknown dataset, dataset should be in [audioset, speechcommands, esc50]')
+    # print('now training with {:s}, main metrics: {:s}, loss function: {:s}, learning rate scheduler: {:s}'.format(str(args.dataset), str(main_metrics), str(loss_fn), str(scheduler)))
 
     if args.adaptschedule == True:
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=args.lr_patience, verbose=True)
         print('now use adaptive learning rate scheduler.')
-
+    else:
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, list(range(args.lrscheduler_start, 1000, args.lrscheduler_step)),gamma=args.lrscheduler_decay)
+    main_metrics = args.metrics
+    if args.loss == 'BCE':
+        loss_fn = nn.BCELoss()
+    elif args.loss == 'CE':
+        loss_fn = nn.CrossEntropyLoss()
     args.loss_fn = loss_fn
 
+    print('now training with {:s}, main metrics: {:s}, loss function: {:s}, learning rate scheduler: {:s}'.format(str(args.dataset), str(main_metrics), str(loss_fn), str(scheduler)))
+    print('The learning rate scheduler starts at {:d} epoch with decay rate of {:.3f} every {:d} epoches'.format(args.lrscheduler_start, args.lrscheduler_decay, args.lrscheduler_step))
+
     epoch += 1
-    # for amp
-    scaler = GradScaler()
 
     print("current #steps=%s, #epochs=%s" % (global_step, epoch))
     print("start training...")
@@ -137,17 +139,13 @@ def train(audio_model, train_loader, test_loader, args):
                     param_group['lr'] = warm_lr
                     print('warm-up learning rate is {:f}'.format(param_group['lr']))
 
-            #with autocast():
             audio_output = audio_model(audio_input, args.task)
             if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
-                #print('cross entropy loss is used.')
                 loss = loss_fn(audio_output, torch.argmax(labels.long(), axis=1))
             else:
-                #print('BCE loss is used')
-                eps = 1e-6
+                eps = 1e-8
                 loss = loss_fn(audio_output + eps, labels)
 
-            # optimization if amp is not used
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -238,7 +236,7 @@ def train(audio_model, train_loader, test_loader, args):
             torch.save(audio_model.state_dict(), "%s/models/best_audio_model.pth" % (exp_dir))
             torch.save(optimizer.state_dict(), "%s/models/best_optim_state.pth" % (exp_dir))
 
-        # save every model
+        # save every models
         torch.save(audio_model.state_dict(), "%s/models/audio_model.%d.pth" % (exp_dir, epoch))
         if len(train_loader.dataset) > 2e5:
             torch.save(optimizer.state_dict(), "%s/models/optim_state.%d.pth" % (exp_dir, epoch))
@@ -273,11 +271,8 @@ def train(audio_model, train_loader, test_loader, args):
         loss_meter.reset()
         per_sample_dnn_time.reset()
 
-    if args.dataset == 'audioset':
-        if len(train_loader.dataset) > 2e5:
-            stats=validate_wa(audio_model, test_loader, args, 1, 5)
-        else:
-            stats=validate_wa(audio_model, test_loader, args, 6, 25)
+    if args.wa == True:
+        stats = validate_wa(audio_model, test_loader, args, args.wa_start, args.wa_end)
         mAP = np.mean([stat['AP'] for stat in stats])
         mAUC = np.mean([stat['auc'] for stat in stats])
         middle_ps = [stat['precisions'][int(len(stat['precisions'])/2)] for stat in stats]
@@ -286,7 +281,7 @@ def train(audio_model, train_loader, test_loader, args):
         average_recall = np.mean(middle_rs)
         wa_result = [mAP, mAUC, average_precision, average_recall, d_prime(mAUC)]
         print('---------------Training Finished---------------')
-        print('weighted averaged model results')
+        print('weighted averaged models results')
         print("mAP: {:.6f}".format(mAP))
         print("AUC: {:.6f}".format(mAUC))
         print("Avg Precision: {:.6f}".format(average_precision))

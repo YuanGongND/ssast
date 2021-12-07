@@ -29,7 +29,7 @@ parser.add_argument("--data-val", type=str, default='', help="validation data js
 parser.add_argument("--data-eval", type=str, default='', help="evaluation data json")
 parser.add_argument("--label-csv", type=str, default='', help="csv with class labels")
 parser.add_argument("--n_class", type=int, default=527, help="number of classes")
-parser.add_argument("--model", type=str, default='ast', help="the model used")
+parser.add_argument("--models", type=str, default='ast', help="the models used")
 parser.add_argument("--dataset", type=str, default="audioset", help="the dataset used for training", choices=["librispeech", "howto100m", "audioset", "esc50", "speechcommands"])
 parser.add_argument("--te_dataset", type=str, default=None, help="the dataset used for test, if None, use same with dataset", choices=["librispeech", "howto100m", "audioset", "esc50", "speechcommands"])
 
@@ -43,7 +43,7 @@ parser.add_argument("--n-epochs", type=int, default=1, help="number of maximum t
 parser.add_argument("--lr_patience", type=int, default=1, help="how many epoch to wait to reduce lr if mAP doesn't improve")
 
 parser.add_argument("--n-print-steps", type=int, default=100, help="number of steps to print statistics")
-parser.add_argument('--save_model', help='save the model or not', type=ast.literal_eval)
+parser.add_argument('--save_model', help='save the models or not', type=ast.literal_eval)
 
 parser.add_argument('--freqm', help='frequency mask max length', type=int, default=0)
 parser.add_argument('--timem', help='time mask max length', type=int, default=0)
@@ -55,14 +55,14 @@ parser.add_argument("--tstride", type=int, default=10, help="soft split time str
 parser.add_argument("--fshape", type=int, default=16, help="shape of patch on the frequency dimension")
 parser.add_argument("--tshape", type=int, default=16, help="shape of patch on the time dimension")
 parser.add_argument("--sinpos", help="if True, use sinusoidal positional embedding (untrainable)", type=ast.literal_eval, default='False')
-parser.add_argument('--imagenet_pretrain', help='if use ImageNet pretrained audio spectrogram transformer model', type=ast.literal_eval, default='True')
-parser.add_argument('--audioset_pretrain', help='if use ImageNet and audioset pretrained audio spectrogram transformer model', type=ast.literal_eval, default='False')
-parser.add_argument('--model_size', help='the size of AST model', type=str, default='base384')
+parser.add_argument('--imagenet_pretrain', help='if use ImageNet pretrained audio spectrogram transformer models', type=ast.literal_eval, default='True')
+parser.add_argument('--audioset_pretrain', help='if use ImageNet and audioset pretrained audio spectrogram transformer models', type=ast.literal_eval, default='False')
+parser.add_argument('--model_size', help='the size of AST models', type=str, default='base384')
 parser.add_argument('--linformer', help='use linear transformer or not ', type=ast.literal_eval, default='False')
 parser.add_argument('--adaptschedule', help='if use adaptive scheduler ', type=ast.literal_eval, default='False')
 parser.add_argument('--mask_patch', help='how many patches to mask (used only for ssl pretraining)', type=int, default=0)
 parser.add_argument('--edgemask', help='how many edges to mask to avoid shortcut', type=int, default=0)
-parser.add_argument("--pretrain_path", type=str, default='none', help="the ssl pretrained model path")
+parser.add_argument("--pretrain_path", type=str, default='none', help="the ssl pretrained models path")
 parser.add_argument("--contnum", type=int, default=0, help="contimask")
 parser.add_argument("--task", type=str, default='ft', help="task, in ['ft','mpg','mpc','reconstruct']")
 parser.add_argument("--epoch_iter", type=int, default=2000, help="for masking experiments, how many iterations to check lr and verification")
@@ -73,9 +73,9 @@ parser.add_argument('--freezetype', help='if freeze ast except the mlp head', ty
 
 args = parser.parse_args()
 
-# transformer based model
+# transformer based models
 if args.model == 'ast':
-    print('now train a audio spectrogram transformer model')
+    print('now train a audio spectrogram transformer models')
     # dataset spectrogram mean and std, used to normalize the input
     norm_stats = {'librispeech':[-4.2677393, 4.5689974], 'howto100m':[-4.2677393, 4.5689974], 'audioset':[-4.2677393, 4.5689974], 'esc50':[-6.6268077, 5.358466], 'speechcommands':[-6.845978, 5.5654526]}
     target_length = {'librispeech': 1024, 'howto100m':1024, 'audioset':1024, 'esc50':512, 'speechcommands':128}
@@ -288,7 +288,7 @@ else:
     print('Now starting SSL pretraining for {:d} epochs'.format(args.n_epochs))
     trainmask(audio_model, train_loader, val_loader, args)
 
-# for speechcommands dataset, evaluate the best model on validation set on the test set
+# for speechcommands dataset, evaluate the best models on validation set on the test set
 if args.dataset == 'speechcommands':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     sd = torch.load(args.exp_dir + '/models/best_audio_model.pth', map_location=device)
@@ -296,7 +296,7 @@ if args.dataset == 'speechcommands':
         audio_model = torch.nn.DataParallel(audio_model)
     audio_model.load_state_dict(sd, strict=False)
 
-    # best model on the validation set
+    # best models on the validation set
     args.loss_fn = torch.nn.BCEWithLogitsLoss()
     stats, _ = validate(audio_model, val_loader, args, 'valid_set')
     # note it is NOT mean of class-wise accuracy
@@ -306,7 +306,7 @@ if args.dataset == 'speechcommands':
     print("Accuracy: {:.6f}".format(val_acc))
     print("AUC: {:.6f}".format(val_mAUC))
 
-    # test the model on the evaluation set
+    # test the models on the evaluation set
     eval_loader = torch.utils.data.DataLoader(
         dataloader.AudiosetDataset(args.data_eval, label_csv=args.label_csv, audio_conf=val_audio_conf),
         batch_size=args.batch_size*2, shuffle=False, num_workers=args.num_workers, pin_memory=True)

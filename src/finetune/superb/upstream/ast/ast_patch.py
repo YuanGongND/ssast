@@ -5,7 +5,7 @@
 # @Email   : yuangong@mit.edu
 # @File    : ast_model_uni.py
 
-# the unified ast model for all pretraining/fine-tuning tasks.
+# the unified ast models for all pretraining/fine-tuning tasks.
 
 import torch.nn as nn
 import torch
@@ -133,7 +133,7 @@ class ASTPatch(nn.Module):
             self.output_weight = nn.Parameter(torch.tensor([0.5] * 2))
 
             # SSL Pretraining Stuff
-            # only initialize these layer for pretraining, this avoids the model loading mismatch between up/down stream tasks
+            # only initialize these layer for pretraining, this avoids the models loading mismatch between up/down stream tasks
             if mask_patch != 0:
                 print('currently in pretraining mode with {:d} masked patchs and clustering factor of {:d}'. format(mask_patch, contnum))
                 self.mask_patch = mask_patch
@@ -190,7 +190,7 @@ class ASTPatch(nn.Module):
             if imagenet_pretrain == True:
                 # to use imagenet pretraining, the shape of the patch has to be 16 * 16
                 assert fshape == 16 and tshape == 16
-                # get the positional embedding from deit model, skip the first two tokens (cls token and distillation token), reshape it to original 2D shape (24*24).
+                # get the positional embedding from deit models, skip the first two tokens (cls token and distillation token), reshape it to original 2D shape (24*24).
                 new_pos_embed = self.v.pos_embed[:, self.cls_token_num:, :].detach().reshape(1, self.original_num_patches, self.original_embedding_dim).transpose(1, 2).reshape(1, self.original_embedding_dim, self.oringal_hw, self.oringal_hw)
                 # cut (from middle) or interpolate the second dimension of the positional embedding
                 if t_dim <= self.oringal_hw:
@@ -204,12 +204,12 @@ class ASTPatch(nn.Module):
                     new_pos_embed = torch.nn.functional.interpolate(new_pos_embed, size=(f_dim, t_dim), mode='bilinear')
                 # flatten the positional embedding
                 new_pos_embed = new_pos_embed.reshape(1, self.original_embedding_dim, num_patches).transpose(1, 2)
-                # concatenate the above positional embedding with the cls token and distillation token of the deit model.
+                # concatenate the above positional embedding with the cls token and distillation token of the deit models.
                 # TODO: need to change requires_grad == True for fine-tuning.
                 #print('positional embedding is freezed.')
                 self.v.pos_embed = nn.Parameter(torch.cat([self.v.pos_embed[:, :self.cls_token_num, :].detach(), new_pos_embed], dim=1), requires_grad=True)
             else:
-                # if not use imagenet pretrained model, just randomly initialize a learnable positional embedding
+                # if not use imagenet pretrained models, just randomly initialize a learnable positional embedding
                 # TODO can use sinusoidal positional embedding instead
                 if sinpos == True:
                     print('sinusoidal positional embedding is used.')
@@ -223,21 +223,21 @@ class ASTPatch(nn.Module):
                 self.v.pos_embed = new_pos_embed
                 trunc_normal_(self.v.pos_embed, std=.02)
 
-        # now load a model that is pretrained on both ImageNet and AudioSet
+        # now load a models that is pretrained on both ImageNet and AudioSet
         elif audioset_pretrain == True:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             pretrain_base_path = ''
             sd = torch.load(pretrain_base_path + '/' + pretrain_path, map_location=device)
 
-            # check if it is a supervised pretrained model, or self supervissed model
+            # check if it is a supervised pretrained models, or self supervissed models
             # SSL with no split overlap has 514 pos embedding, supervised with 6 split has an overlap of 1214 pos embedding
-            # can be used to judge if it is an SSL or supervised pretrained model
+            # can be used to judge if it is an SSL or supervised pretrained models
 
             save_mdl_pos = sd['module.v.pos_embed'].shape[1]
             # if SSL
             if save_mdl_pos == 514:
-                print('now loading a SSL pretrained model')
-                print('now load model from ' + pretrain_path)
+                print('now loading a SSL pretrained models')
+                print('now load models from ' + pretrain_path)
                 audio_model = ASTPatch(label_dim=527, fstride=16, tstride=16, input_fdim=128, input_tdim=1024, imagenet_pretrain=False, audioset_pretrain=False, model_size=model_size)
                 audio_model = torch.nn.DataParallel(audio_model)
                 audio_model.load_state_dict(sd, strict=False)
@@ -264,7 +264,7 @@ class ASTPatch(nn.Module):
                 print('frequncey stride={:d}, time stride={:d}'.format(fstride, tstride))
                 print('number of patches={:d}'.format(num_patches))
 
-                # if the stride of the pretrained model is different with that for fine-tuning.
+                # if the stride of the pretrained models is different with that for fine-tuning.
                 if fstride != 16 or tstride != 16:
                     new_proj = torch.nn.Conv2d(1, self.original_embedding_dim, kernel_size=(fshape, tshape), stride=(fstride, tstride))
                     new_proj.weight = torch.nn.Parameter(torch.sum(self.v.patch_embed.proj.weight, dim=1).unsqueeze(1))
@@ -288,8 +288,8 @@ class ASTPatch(nn.Module):
                 self.v.pos_embed = nn.Parameter(torch.cat([self.v.pos_embed[:, :self.cls_token_num, :].detach(), new_pos_embed], dim=1))
 
             elif save_mdl_pos == 1214:
-                print('now loading a AS supervised pretrained model')
-                print('now load model from ' + pretrain_path)
+                print('now loading a AS supervised pretrained models')
+                print('now load models from ' + pretrain_path)
                 audio_model = ASTModelUni(label_dim=527, fstride=10, tstride=10, input_fdim=128, input_tdim=1024, imagenet_pretrain=False, audioset_pretrain=False, model_size=model_size)
                 audio_model = torch.nn.DataParallel(audio_model)
                 audio_model.load_state_dict(sd, strict=False)

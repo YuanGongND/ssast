@@ -5,7 +5,7 @@
 # @Email   : yuangong@mit.edu
 # @File    : ast_model_uni.py
 
-# the unified ast model for all pretraining/fine-tuning tasks.
+# the unified ast models for all pretraining/fine-tuning tasks.
 
 import torch.nn as nn
 import torch
@@ -55,7 +55,7 @@ class ASTModel(nn.Module):
     def __init__(self, label_dim=527,
                  fshape=128, tshape=2, fstride=128, tstride=2,
                  input_fdim=128, input_tdim=1024, model_size='base384',
-                 pretrain=True, load_pretrained_mdl_path=None):
+                 pretrain_stage=True, load_pretrained_mdl_path=None):
 
         super(ASTModel, self).__init__()
         assert timm.__version__ == '0.4.5', 'Please use timm == 0.4.5, the code might not be compatible with newer versions.'
@@ -63,8 +63,8 @@ class ASTModel(nn.Module):
         # override timm input shape restriction
         timm.models.vision_transformer.PatchEmbed = PatchEmbed
 
-        # pretrain the AST model
-        if pretrain == True:
+        # pretrain the AST models
+        if pretrain_stage == True:
             if load_pretrained_mdl_path != None:
                 raise ValueError('Setting load_pretrained_mdl_path at pretraining stage is useless, pretraining is always from scratch, please change it to None.')
             if fstride != fshape or tstride != tshape:
@@ -109,7 +109,7 @@ class ASTModel(nn.Module):
 
             # masked patch classification (discriminative objective) layer
             # we use two layers for pretext task, but using a single layer has similar performance.
-            # we map the output of transformer (768-dim for base model) to 256-dim patch input space, and then dot product with flattened patch input (also 256-dim) to calculate loss.
+            # we map the output of transformer (768-dim for base models) to 256-dim patch input space, and then dot product with flattened patch input (also 256-dim) to calculate loss.
             # alternatively, you can map the output of transformer to 768-dim patch embedding space, and dot product with patch embedding. Performance-wise they are similar, but map to 256 space is more efficient.
             self.cpredlayer = nn.Sequential(nn.Linear(self.original_embedding_dim, self.original_embedding_dim), nn.ReLU(), nn.Linear(self.original_embedding_dim, 256))
             # masked patch reconstruction (generative objective) layer
@@ -139,17 +139,17 @@ class ASTModel(nn.Module):
             self.v.pos_embed = new_pos_embed
             trunc_normal_(self.v.pos_embed, std=.02)
 
-        # use a pretrained model for finetuning
-        elif pretrain == False:
+        # use a pretrained models for finetuning
+        elif pretrain_stage == False:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             if load_pretrained_mdl_path == None:
-                raise ValueError('Please set load_pretrained_mdl_path to load a pretrained model.')
+                raise ValueError('Please set load_pretrained_mdl_path to load a pretrained models.')
             sd = torch.load(load_pretrained_mdl_path, map_location=device)
             # get the fshape and tshape, input_fdim and input_tdim in the pretraining stage
             p_fshape, p_tshape = sd['module.v.patch_embed.proj.weight'].shape[2], sd['module.v.patch_embed.proj.weight'].shape[3]
             p_input_fdim, p_input_tdim = sd['module.p_input_fdim'].item(), sd['module.p_input_tdim'].item()
 
-            print('now load a SSL pretrained model from ' + load_pretrained_mdl_path)
+            print('now load a SSL pretrained models from ' + load_pretrained_mdl_path)
             # during pretraining, fstride=fshape and tstride=tshape because no patch overlapping is used
             # here, input_fdim and input_tdim should be that used in pretraining, not that in the fine-tuning.
             # we need to know input_fdim and input_tdim to do positional embedding cut/interpolation.
@@ -185,7 +185,7 @@ class ASTModel(nn.Module):
             if fstride != p_fshape or tstride != p_tshape:
                 # initialize a new patch embedding layer with desired new stride.
                 new_proj = torch.nn.Conv2d(1, self.original_embedding_dim, kernel_size=(fshape, tshape), stride=(fstride, tstride))
-                # but the weights of patch embedding layer is still got from the pretrained model
+                # but the weights of patch embedding layer is still got from the pretrained models
                 new_proj.weight = torch.nn.Parameter(torch.sum(self.v.patch_embed.proj.weight, dim=1).unsqueeze(1))
                 new_proj.bias = self.v.patch_embed.proj.bias
                 self.v.patch_embed.proj = new_proj
@@ -276,7 +276,7 @@ class ASTModel(nn.Module):
             x = blk(x)
         x = self.v.norm(x)
 
-        # if model has two cls tokens (DEIT), average as the clip-level representation
+        # if models has two cls tokens (DEIT), average as the clip-level representation
         if self.cls_token_num == 2:
             x = (x[:, 0] + x[:, 1]) / 2
         else:
@@ -332,7 +332,7 @@ class ASTModel(nn.Module):
         pred = torch.empty((B, mask_patch, 256), device=x.device).float()  # e.g. size 12*100*768
         for i in range(B):
             #  +2 for indexes because skipping the cls and dis token
-            # we map the output of transformer (768-dim for base model) to 256-dim patch input space, and then dot product with flattened patch input (also 256-dim) to calculate loss.
+            # we map the output of transformer (768-dim for base models) to 256-dim patch input space, and then dot product with flattened patch input (also 256-dim) to calculate loss.
             # alternatively, you can map the output of transformer to 768-dim patch embedding space, and dot product with patch embedding. Performance-wise they are similar, but map to 256 space is more efficient.
             pred[i] = self.cpredlayer(x[i, mask_index[i] + self.cls_token_num, :])
 

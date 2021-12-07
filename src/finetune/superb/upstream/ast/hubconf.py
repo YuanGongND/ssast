@@ -10,9 +10,9 @@ import os
 from s3prl.utility.download import _urls_to_filepaths
 from .expert import UpstreamExpert as _UpstreamExpert
 
-# model used in final version, comparing patch vs frame base model. Patch model has already been tested in original paper, so main focus is base frame model.
-# also test model scaling with tiny and small models
-# name starts with 224 is a mistake, actually is a base 384 model.
+# models used in final version, comparing patch vs frame base models. Patch models has already been tested in original paper, so main focus is base frame models.
+# also test models scaling with tiny and small models
+# name starts with 224 is a mistake, actually is a base 384 models.
 
 def ast224_frame_base_1s_scratch(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base384_f'
@@ -70,7 +70,7 @@ def ast224_frame_base_10s_ssl_400(ckpt, *args, **kwargs):
     kwargs["target_length"] = 1000
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
-# tiny and small models, for final version, tiny model has been tested in rebuttal, but do it again for insurance
+# tiny and small models, for final version, tiny models has been tested in rebuttal, but do it again for insurance
 # tiny models
 def ast_tiny224_patch_1s_final_scratch(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'tiny224_p'
@@ -147,7 +147,7 @@ def ast_small224_patch_10s_final_ssl(ckpt, *args, **kwargs):
 
 # -------------------------------------#
 
-# model used in the rebuttal, basically tiny models.
+# models used in the rebuttal, basically tiny models.
 def ast224_frame_1s_scratch(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'tiny224_f'
     kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/sslast2/egs/audioset/exp/mask36r-full-tiny224-pFalse-b120-lr5e-4-m400-contmask-1-mix-framenocluster-asli/models/audio_model.1.pth'
@@ -173,7 +173,7 @@ def ast224_patch_1s_ssl(ckpt, *args, **kwargs):
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
 # 10s for sid
-# model used in the rebuttal, basically tiny models.
+# models used in the rebuttal, basically tiny models.
 def ast224_frame_10s_scratch(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'tiny224_f'
     kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/sslast2/egs/audioset/exp/mask36r-full-tiny224-pFalse-b120-lr5e-4-m400-contmask-1-mix-framenocluster-asli/models/audio_model.1.pth'
@@ -201,7 +201,7 @@ def ast224_patch_10s_ssl(ckpt, *args, **kwargs):
 
 # 6s for emotion
 
-# model used in the rebuttal, basically tiny models.
+# models used in the rebuttal, basically tiny models.
 def ast224_frame_6s_scratch(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'tiny224_f'
     kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/sslast2/egs/audioset/exp/mask36r-full-tiny224-pFalse-b120-lr5e-4-m400-contmask-1-mix-framenocluster-asli/models/audio_model.1.pth'
@@ -228,7 +228,7 @@ def ast224_patch_6s_ssl(ckpt, *args, **kwargs):
 
 
 
-# model used in the first submission
+# models used in the first submission
 
 # def ast224(ckpt, *args, **kwargs):
 #     kwargs['model_size'] = 'tiny224'
@@ -534,7 +534,7 @@ def ast384_abe150_10s(ckpt, *args, **kwargs):
     kwargs["lo"] = True
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
-# abalation study model 6s
+# abalation study models 6s
 
 def ast384_ab2_6s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base384'
@@ -668,7 +668,7 @@ def ast384_abe150_6s(ckpt, *args, **kwargs):
     kwargs["target_length"] = 600
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
-# ablation study model, 1s
+# ablation study models, 1s
 
 def ast384_ab2_1s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base384'

@@ -121,7 +121,7 @@ class ASTModelUniFrame2(nn.Module):
             self.output_weight = nn.Parameter(torch.tensor([0.5] * 2))
 
             # SSL Pretraining Stuff
-            # only initialize these layer for pretraining, this avoids the model loading mismatch between up/down stream tasks
+            # only initialize these layer for pretraining, this avoids the models loading mismatch between up/down stream tasks
             if mask_patch != 0:
                 print('currently in pretraining mode with {:d} masked patchs and clustering factor of {:d}'. format(mask_patch, contnum))
                 self.mask_patch = mask_patch
@@ -169,7 +169,7 @@ class ASTModelUniFrame2(nn.Module):
                 new_proj.bias = self.v.patch_embed.proj.bias
             self.v.patch_embed.proj = new_proj
 
-            # if not use imagenet pretrained model, just randomly initialize a learnable positional embedding
+            # if not use imagenet pretrained models, just randomly initialize a learnable positional embedding
             # TODO can use sinusoidal positional embedding instead
             if sinpos == True:
                 print('sinusoidal positional embedding is used.')
@@ -187,15 +187,15 @@ class ASTModelUniFrame2(nn.Module):
             pretrain_base_path = ''
             sd = torch.load(pretrain_base_path + '/' + pretrain_path, map_location=device)
 
-            # check if it is a supervised pretrained model, or self supervissed model
+            # check if it is a supervised pretrained models, or self supervissed models
             # SSL with no split overlap has 514 pos embedding, supervised with 6 split has an overlap of 1214 pos embedding
-            # can be used to judge if it is an SSL or supervised pretrained model
+            # can be used to judge if it is an SSL or supervised pretrained models
 
             save_mdl_pos = sd['module.v.pos_embed'].shape[1]
             # if SSL
 
-            print('now loading a SSL pretrained model')
-            print('now load model from ' + pretrain_path)
+            print('now loading a SSL pretrained models')
+            print('now load models from ' + pretrain_path)
             audio_model = ASTModelUniFrame2(label_dim=527, fstride=128, tstride=2, fshape=128, tshape=2, input_fdim=128, input_tdim=1024,
                                       imagenet_pretrain=False, audioset_pretrain=False, model_size=model_size)
             audio_model = torch.nn.DataParallel(audio_model)
@@ -221,7 +221,7 @@ class ASTModelUniFrame2(nn.Module):
             print('frequncey stride={:d}, time stride={:d}'.format(fstride, tstride))
             print('number of patches={:d}'.format(num_patches))
 
-            # if the stride of the pretrained model is different with that for fine-tuning.
+            # if the stride of the pretrained models is different with that for fine-tuning.
             if fstride != 128 or tstride != 2:
                 new_proj = torch.nn.Conv2d(1, self.original_embedding_dim, kernel_size=(fshape, tshape), stride=(fstride, tstride))
                 new_proj.weight = torch.nn.Parameter(torch.sum(self.v.patch_embed.proj.weight, dim=1).unsqueeze(1))

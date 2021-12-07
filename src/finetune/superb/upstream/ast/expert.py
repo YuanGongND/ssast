@@ -22,9 +22,9 @@ class UpstreamExpert(UpstreamBase):
         pretrain_path = kwargs["pretrain_path"]
         target_length = kwargs["target_length"]
 
-        # if it is just a model size
+        # if it is just a models size
         if len(model_size.split('_')) == 1:
-            # by default, model is patch based
+            # by default, models is patch based
             model_type = 'p'
         else:
             model_size, model_type = model_size.split('_')[0], model_size.split('_')[1]
@@ -48,15 +48,15 @@ class UpstreamExpert(UpstreamBase):
         self.preprocessor = FeatureExtractor(target_length=target_length, apply_cmvn=self.apply_cmvn)
 
         if model_type == 'p':
-            print('now train a patch model')
+            print('now train a patch models')
             # if pretrain_path == None:
-            #     self.model = AST(imagenet_pretrain=False, audioset_pretrain=False, input_tdim=target_length, tstride=self.stride, fstride=self.stride, model_size=model_size)
+            #     self.models = AST(imagenet_pretrain=False, audioset_pretrain=False, input_tdim=target_length, tstride=self.stride, fstride=self.stride, model_size=model_size)
             # elif pretrain_path == 'imagenet':
-            #     self.model = AST(imagenet_pretrain=True, audioset_pretrain=False, input_tdim=target_length, tstride=self.stride, fstride=self.stride)
+            #     self.models = AST(imagenet_pretrain=True, audioset_pretrain=False, input_tdim=target_length, tstride=self.stride, fstride=self.stride)
             # else:
             self.model = ASTPatch(audioset_pretrain=True, input_tdim=target_length, model_size=model_size, pretrain_path=pretrain_path, tstride=self.stride, fstride=self.stride)
         else:
-            print('now train a frame model')
+            print('now train a frame models')
             self.model = ASTModelUniFrame2(audioset_pretrain=True, input_tdim=target_length, model_size=model_size, pretrain_path=pretrain_path, fshape=128, tshape=2, fstride=128, tstride=1)
 
     def forward(self, wavs):

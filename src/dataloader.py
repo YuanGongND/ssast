@@ -5,10 +5,8 @@
 # @Email   : yuangong@mit.edu
 # @File    : dataloader.py.py
 
-# modified from:
 # Author: David Harwath
 # with some functions borrowed from https://github.com/SeanNaren/deepspeech.pytorch
-
 import csv
 import json
 import torchaudio
@@ -47,14 +45,13 @@ def lookup_list(index_list, label_csv):
 
 def preemphasis(signal,coeff=0.97):
     """perform preemphasis on the input signal.
-
     :param signal: The signal to filter.
     :param coeff: The preemphasis coefficient. 0 is none, default 0.97.
     :returns: the filtered signal.
     """
     return np.append(signal[0],signal[1:]-coeff*signal[:-1])
 
-class AudiosetDataset(Dataset):
+class AudioDataset(Dataset):
     def __init__(self, dataset_json_file, audio_conf, label_csv=None):
         """
         Dataset that manages audio recordings
@@ -79,9 +76,13 @@ class AudiosetDataset(Dataset):
         # dataset spectrogram mean and std, used to normalize the input
         self.norm_mean = self.audio_conf.get('mean')
         self.norm_std = self.audio_conf.get('std')
-        print('use dataset mean {:.3f} and std {:.3f} to normalize the input'.format(self.norm_mean, self.norm_std))
-        self.target_length = self.audio_conf.get('target_length')
-        print('Audio length is {:.3f}'.format(self.target_length))
+        # skip_norm is a flag that if you want to skip normalization to compute the normalization stats using src/get_norm_stats.py, if Ture, input normalization will be skipped for correctly calculating the stats.
+        # set it as True ONLY when you are getting the normalization stats.
+        self.skip_norm = self.audio_conf.get('skip_norm') if self.audio_conf.get('skip_norm') else False
+        if self.skip_norm:
+            print('now skip normalization (use it ONLY when you are computing the normalization stats).')
+        else:
+            print('use dataset mean {:.3f} and std {:.3f} to normalize the input.'.format(self.norm_mean, self.norm_std))
         # if add noise for data augmentation
         self.noise = self.audio_conf.get('noise')
         if self.noise == True:
@@ -91,28 +92,15 @@ class AudiosetDataset(Dataset):
         self.label_num = len(self.index_dict)
         print('number of classes is {:d}'.format(self.label_num))
 
-    def _wav2fbank(self, filename, filename2=None, segment1=-1, segment2=-1):
+    def _wav2fbank(self, filename, filename2=None):
         # mixup
         if filename2 == None:
-            # read only a segment of the audio file
-            if segment1 != -1:
-                waveform, sr = torchaudio.load(filename, frame_offset=segment1*16000*10, num_frames=int(self.target_length/100)*16000)
-                #print(waveform.shape)
-            # read the entire audio clip.
-            else:
-                waveform, sr = torchaudio.load(filename)
+            waveform, sr = torchaudio.load(filename)
             waveform = waveform - waveform.mean()
         # mixup
         else:
-            if segment1 != -1:
-                waveform1, sr = torchaudio.load(filename, frame_offset=segment1*16000*10, num_frames=int(self.target_length/100)*16000)
-            else:
-                waveform1, sr = torchaudio.load(filename)
-
-            if segment2 != -1:
-                waveform2, _ = torchaudio.load(filename2, frame_offset=segment2*16000*10, num_frames=int(self.target_length/100)*16000)
-            else:
-                waveform2, _ = torchaudio.load(filename2)
+            waveform1, sr = torchaudio.load(filename)
+            waveform2, _ = torchaudio.load(filename2)
 
             waveform1 = waveform1 - waveform1.mean()
             waveform2 = waveform2 - waveform2.mean()
@@ -138,16 +126,17 @@ class AudiosetDataset(Dataset):
         fbank = torchaudio.compliance.kaldi.fbank(waveform, htk_compat=True, sample_frequency=sr, use_energy=False,
                                                   window_type='hanning', num_mel_bins=self.melbins, dither=0.0, frame_shift=10)
 
+        target_length = self.audio_conf.get('target_length')
         n_frames = fbank.shape[0]
 
-        p = self.target_length - n_frames
+        p = target_length - n_frames
 
         # cut and pad
         if p > 0:
             m = torch.nn.ZeroPad2d((0, 0, 0, p))
             fbank = m(fbank)
         elif p < 0:
-            fbank = fbank[0:self.target_length, :]
+            fbank = fbank[0:target_length, :]
 
         if filename2 == None:
             return fbank, 0
@@ -171,10 +160,7 @@ class AudiosetDataset(Dataset):
             mix_sample_idx = random.randint(0, len(self.data)-1)
             mix_datum = self.data[mix_sample_idx]
             # get the mixed fbank
-            if self.dataset == 'howto100m':
-                fbank, mix_lambda = self._wav2fbank('/data/sls/d/howto/parsed_videos/' + datum['wav'], '/data/sls/d/howto/parsed_videos/' + mix_datum['wav'], int(datum['segment']), int(mix_datum['segment']))
-            else:
-                fbank, mix_lambda = self._wav2fbank(datum['wav'], mix_datum['wav'])
+            fbank, mix_lambda = self._wav2fbank(datum['wav'], mix_datum['wav'])
             # initialize the label
             label_indices = np.zeros(self.label_num)
             # add sample 1 labels
@@ -182,17 +168,13 @@ class AudiosetDataset(Dataset):
                 label_indices[int(self.index_dict[label_str])] += mix_lambda
             # add sample 2 labels
             for label_str in mix_datum['labels'].split(','):
-                label_indices[int(self.index_dict[label_str])] += 1.0-mix_lambda
+                label_indices[int(self.index_dict[label_str])] += (1.0-mix_lambda)
             label_indices = torch.FloatTensor(label_indices)
         # if not do mixup
         else:
             datum = self.data[index]
             label_indices = np.zeros(self.label_num)
-            if self.dataset == 'howto100m':
-                #print(datum['wav'])
-                fbank, mix_lambda = self._wav2fbank('/data/sls/d/howto/parsed_videos/' + datum['wav'], segment1=int(datum['segment']))
-            else:
-                fbank, mix_lambda = self._wav2fbank(datum['wav'])
+            fbank, mix_lambda = self._wav2fbank(datum['wav'])
             for label_str in datum['labels'].split(','):
                 label_indices[int(self.index_dict[label_str])] = 1.0
 
@@ -208,14 +190,16 @@ class AudiosetDataset(Dataset):
             fbank = timem(fbank)
         fbank = torch.transpose(fbank, 0, 1)
 
-        # normalize the input
-        fbank = (fbank - self.norm_mean) / (self.norm_std * 2)
+        # normalize the input for both training and test
+        if not self.skip_norm:
+            fbank = (fbank - self.norm_mean) / (self.norm_std * 2)
+        # skip normalization the input if you are trying to get the normalization stats.
+        else:
+            pass
 
         if self.noise == True:
             fbank = fbank + torch.rand(fbank.shape[0], fbank.shape[1]) * np.random.rand() / 10
             fbank = torch.roll(fbank, np.random.randint(-10, 10), 0)
-
-        mix_ratio = min(mix_lambda, 1-mix_lambda) / max(mix_lambda, 1-mix_lambda)
 
         # the output fbank shape is [time_frame_num, frequency_bins], e.g., [1024, 128]
         return fbank, label_indices

@@ -29,7 +29,7 @@ dataset_mean=-4.2677393
 dataset_std=4.5689974
 target_length=1024
 
-model_size=base384
+model_size='tiny224'
 # no patch split overlap
 fshape=16
 tshape=16
@@ -37,8 +37,8 @@ fstride=${fshape}
 tstride=${tshape}
 # no class balancing as it implicitly uses label information
 bal=none
-batch_size=24
-lr=1e-4
+batch_size=120
+lr=5e-4
 # learning rate decreases if the pretext task performance does not improve on the validation set
 lr_patience=2
 epoch=20
@@ -58,4 +58,4 @@ CUDA_CACHE_DISABLE=1 python -W ignore ../run.py --dataset ${dataset} \
 --tstride $tstride --fstride $fstride --fshape ${fshape} --tshape ${tshape} \
 --dataset_mean ${dataset_mean} --dataset_std ${dataset_std} --target_length ${target_length} --num_mel_bins 128 \
 --model_size ${model_size} --mask_patch ${mask_patch} --n-print-steps 100 \
---task ${task} --lr_patience ${lr_patience} --epoch_iter 4000
+--task ${task} --lr_patience ${lr_patience} --epoch_iter 800

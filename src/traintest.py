@@ -100,7 +100,7 @@ def train(audio_model, train_loader, test_loader, args):
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, list(range(args.lrscheduler_start, 1000, args.lrscheduler_step)),gamma=args.lrscheduler_decay)
     main_metrics = args.metrics
     if args.loss == 'BCE':
-        loss_fn = nn.BCELoss()
+        loss_fn = nn.BCEWithLogitsLoss()
     elif args.loss == 'CE':
         loss_fn = nn.CrossEntropyLoss()
     args.loss_fn = loss_fn
@@ -133,9 +133,9 @@ def train(audio_model, train_loader, test_loader, args):
             dnn_start_time = time.time()
 
             # first several steps for warm-up
-            if global_step <= 500 and global_step % 50 == 0 and args.warmup == True:
+            if global_step <= 1000 and global_step % 50 == 0 and args.warmup == True:
                 for group_id, param_group in enumerate(optimizer.param_groups):
-                    warm_lr = (global_step / 500) * lr_list[group_id]
+                    warm_lr = (global_step / 1000) * lr_list[group_id]
                     param_group['lr'] = warm_lr
                     print('warm-up learning rate is {:f}'.format(param_group['lr']))
 
@@ -143,8 +143,7 @@ def train(audio_model, train_loader, test_loader, args):
             if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
                 loss = loss_fn(audio_output, torch.argmax(labels.long(), axis=1))
             else:
-                eps = 1e-8
-                loss = loss_fn(audio_output + eps, labels)
+                loss = loss_fn(audio_output, labels)
 
             optimizer.zero_grad()
             loss.backward()

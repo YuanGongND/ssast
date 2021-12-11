@@ -24,13 +24,13 @@ from traintest_mask import trainmask
 print("I am process %s, running on %s: starting (%s)" % (os.getpid(), os.uname()[1], time.asctime()))
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--data-train", type=str, default='', help="training data json")
-parser.add_argument("--data-val", type=str, default='', help="validation data json")
-parser.add_argument("--data-eval", type=str, default='', help="evaluation data json")
+parser.add_argument("--data-train", type=str, default=None, help="training data json")
+parser.add_argument("--data-val", type=str, default=None, help="validation data json")
+parser.add_argument("--data-eval", type=str, default=None, help="evaluation data json")
 parser.add_argument("--label-csv", type=str, default='', help="csv with class labels")
 parser.add_argument("--n_class", type=int, default=527, help="number of classes")
 
-parser.add_argument("--dataset", type=str, help="the dataset used for training", choices=["asli", "librispeech", "audioset", "esc50", "speechcommands"])
+parser.add_argument("--dataset", type=str, help="the dataset used for training")
 parser.add_argument("--dataset_mean", type=float, help="the dataset mean, used for input normalization")
 parser.add_argument("--dataset_std", type=float, help="the dataset std, used for input normalization")
 parser.add_argument("--target_length", type=int, help="the input length in frames")
@@ -74,17 +74,17 @@ parser.add_argument("--cluster_factor", type=int, default=3, help="mask cluterin
 parser.add_argument("--epoch_iter", type=int, default=2000, help="for pretraining, how many iterations to verify and save models")
 
 # fine-tuning arguments
-parser.add_argument("--pretrained_mdl_path", type=str, default='none', help="the ssl pretrained models path")
+parser.add_argument("--pretrained_mdl_path", type=str, default=None, help="the ssl pretrained models path")
 parser.add_argument("--head_lr", type=int, default=1, help="the factor of mlp-head_lr/lr, used in some fine-tuning experiments only")
 parser.add_argument("--noise", help='if augment noise in finetuning', type=ast.literal_eval)
-parser.add_argument("--metrics", type=str, help="the main evaluation metrics in finetuning", choices=["mAP", "acc"])
-parser.add_argument("--lrscheduler_start", type=int, help="when to start decay in finetuning")
-parser.add_argument("--lrscheduler_step", type=int, help="the number of step to decrease the learning rate in finetuning")
-parser.add_argument("--lrscheduler_decay", type=float, help="the learning rate decay ratio in finetuning")
+parser.add_argument("--metrics", type=str, default="mAP", help="the main evaluation metrics in finetuning", choices=["mAP", "acc"])
+parser.add_argument("--lrscheduler_start", default=10, type=int, help="when to start decay in finetuning")
+parser.add_argument("--lrscheduler_step", default=5, type=int, help="the number of step to decrease the learning rate in finetuning")
+parser.add_argument("--lrscheduler_decay", default=0.5, type=float, help="the learning rate decay ratio in finetuning")
 parser.add_argument("--wa", help='if do weight averaging in finetuning', type=ast.literal_eval)
 parser.add_argument("--wa_start", type=int, default=16, help="which epoch to start weight averaging in finetuning")
 parser.add_argument("--wa_end", type=int, default=30, help="which epoch to end weight averaging in finetuning")
-parser.add_argument("--loss", type=str, help="the loss function for finetuning, depend on the task", choices=["BCE", "CE"])
+parser.add_argument("--loss", type=str, default="BCE", help="the loss function for finetuning, depend on the task", choices=["BCE", "CE"])
 
 args = parser.parse_args()
 
@@ -98,7 +98,7 @@ audio_conf = {'num_mel_bins': args.num_mel_bins, 'target_length': args.target_le
               'mode':'train', 'mean':args.dataset_mean, 'std':args.dataset_std, 'noise':args.noise}
 
 val_audio_conf = {'num_mel_bins': args.num_mel_bins, 'target_length': args.target_length, 'freqm': 0, 'timem': 0, 'mixup': 0, 'dataset': args.dataset,
-                  'mode':'evaluation', 'mean':args.dataset_mean, 'std':args.dataset_std, 'noise':False}
+                  'mode': 'evaluation', 'mean': args.dataset_mean, 'std': args.dataset_std, 'noise': False}
 
 # if use balanced sampling, note - self-supervised pretraining should not use balance sampling as it implicitly leverages the label information.
 if args.bal == 'bal':
@@ -117,14 +117,19 @@ else:
 
 val_loader = torch.utils.data.DataLoader(
     dataloader.AudioDataset(args.data_val, label_csv=args.label_csv, audio_conf=val_audio_conf),
-    batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=False)
+    batch_size=args.batch_size * 2, shuffle=False, num_workers=args.num_workers, pin_memory=False)
 
 print('Now train with {:s} with {:d} training samples, evaluate with {:d} samples'.format(args.dataset, len(train_loader.dataset), len(val_loader.dataset)))
 
 # in the pretraining stage
 if 'pretrain' in args.task:
+    cluster = (args.num_mel_bins != args.fshape)
+    if cluster == True:
+        print('The num_mel_bins {:d} and fshape {:d} are different, not masking a typical time frame, using cluster masking.'.format(args.num_mel_bins, args.fshape))
+    else:
+        print('The num_mel_bins {:d} and fshape {:d} are same, masking a typical time frame, not using cluster masking.'.format(args.num_mel_bins, args.fshape))
     # no label dimension needed as it is self-supervised, fshape=fstride and tshape=tstride
-    ast_mdl = ASTModel(fshape=args.fshape, tshape=args.tshape, fstride=args.fshape, tstride=args.tshape,
+    audio_model = ASTModel(fshape=args.fshape, tshape=args.tshape, fstride=args.fshape, tstride=args.tshape,
                        input_fdim=args.num_mel_bins, input_tdim=args.target_length, model_size=args.model_size, pretrain_stage=True)
 # in the fine-tuning stage
 else:

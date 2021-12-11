@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH -p sm
-#SBATCH -x sls-sm-1,sls-2080-[1,3],sls-1080-[2,3],sls-sm-5
-##SBATCH -p gpu
-##SBATCH -x sls-titan-[0-2]
+##SBATCH -p sm
+##SBATCH -x sls-sm-1,sls-2080-[1,3],sls-1080-[2,3],sls-sm-5
+#SBATCH -p gpu
+#SBATCH -x sls-titan-[0-2]
 #SBATCH --gres=gpu:4
 #SBATCH -c 4
 #SBATCH -n 1
@@ -16,7 +16,7 @@ set -x
 source /data/sls/scratch/yuangong/sslast2/sslast2/bin/activate
 export TORCH_HOME=../../pretrained_models
 
-pretrain_exp=patch_base_400
+pretrain_exp=patch_tiny_400
 pretrain_epoch=999
 
 dataset=esc50
@@ -38,11 +38,11 @@ fstride=10
 tstride=10
 
 task=ft_avgtok
-model_size=base384
-head_lr=10
+model_size=tiny224
+head_lr=1
 
 pretrain_path=/data/sls/scratch/yuangong/ssast/pretrained_model/${pretrain_exp}/audio_model.${pretrain_epoch}.pth
-base_exp_dir=./exp/test03-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_epoch}-${head_lr}x-noise${noise}
+base_exp_dir=./exp/test09-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_epoch}-${head_lr}x-noise${noise}-3
 
 for((fold=1;fold<=5;fold++));
 do
@@ -60,10 +60,10 @@ do
   --freqm $freqm --timem $timem --mixup ${mixup} --bal ${bal} \
   --tstride $tstride --fstride $fstride --fshape ${fshape} --tshape ${tshape} --warmup False --task ${task} \
   --model_size ${model_size} --adaptschedule False \
-  --pretrain False --pretrained_mdl_path ${pretrain_path} \
+  --pretrained_mdl_path ${pretrain_path} \
   --dataset_mean ${dataset_mean} --dataset_std ${dataset_std} --target_length ${target_length} \
   --num_mel_bins 128 --head_lr ${head_lr} --noise ${noise} \
-  --lrscheduler_start 5 --lrscheduler_step 1 --lrscheduler_decay 0.85 --wa False --loss CE --metrics acc
+  --lrscheduler_start 6 --lrscheduler_step 1 --lrscheduler_decay 0.85 --wa False --loss CE --metrics acc
 done
 
 python ./get_esc_result.py --exp_path ${base_exp_dir}

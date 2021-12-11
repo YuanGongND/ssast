@@ -63,7 +63,7 @@ def trainmask(audio_model, train_loader, test_loader, args):
         # save from-scratch models before the first epoch
         torch.save(audio_model.state_dict(), "%s/models/audio_model.%d.pth" % (exp_dir, global_step+1))
 
-        for i, (audio_input, labels) in enumerate(train_loader):
+        for i, (audio_input, _) in enumerate(train_loader):
             # measure data loading time
             B = audio_input.size(0)
             audio_input = audio_input.to(device, non_blocking=True)
@@ -79,23 +79,25 @@ def trainmask(audio_model, train_loader, test_loader, args):
                     param_group['lr'] = warm_lr
                 print('warm-up learning rate is {:f}'.format(optimizer.param_groups[0]['lr']))
 
+            # use cluster masking only when masking patches, not frames
+            cluster = (args.num_mel_bins != args.fshape)
             # if pretrain with discriminative objective
             if args.task == 'pretrain_mpc':
-                acc, loss = audio_model(audio_input, args.task, mask_patch=args.mask_patch)
+                acc, loss = audio_model(audio_input, args.task, mask_patch=args.mask_patch, cluster=cluster)
                 # this is for multi-gpu support, in our code, loss is calculated in the model
                 # pytorch concatenates the output of each gpu, we thus get mean of the losses of each gpu
                 acc, loss = acc.mean(), loss.mean()
             # if pretrain with generative objective
             elif args.task == 'pretrain_mpg':
-                loss = audio_model(audio_input, args.task, mask_patch=args.mask_patch)
+                loss = audio_model(audio_input, args.task, mask_patch=args.mask_patch, cluster=cluster)
                 loss = loss.mean()
                 # dirty code to make the code report mse loss for generative objective
                 acc = loss
             # if pretrain with joint discriminative and generative objective
             elif args.task == 'pretrain_joint':
-                acc, loss1 = audio_model(audio_input, 'pretrain_mpc', mask_patch=args.mask_patch)
+                acc, loss1 = audio_model(audio_input, 'pretrain_mpc', mask_patch=args.mask_patch, cluster=cluster)
                 acc, loss1 = acc.mean(), loss1.mean()
-                loss2 = audio_model(audio_input, 'pretrain_mpg', mask_patch=args.mask_patch)
+                loss2 = audio_model(audio_input, 'pretrain_mpg', mask_patch=args.mask_patch, cluster=cluster)
                 loss2 = loss2.mean()
                 loss = loss1 + 10 * loss2
 
@@ -193,22 +195,24 @@ def validatemask(audio_model, val_loader, args, epoch):
     A_acc = []
     A_nce = []
     with torch.no_grad():
-        for i, (audio_input, labels) in enumerate(val_loader):
+        for i, (audio_input, _) in enumerate(val_loader):
             audio_input = audio_input.to(device)
 
+            # use cluster masking only when masking patches, not frames
+            cluster = (args.num_mel_bins != args.fshape)
             # always use mask_patch=400 for evaluation, even the training mask patch number differs.
             if args.task == 'pretrain_mpc':
-                acc, nce = audio_model(audio_input, args.task, mask_patch=400)
+                acc, nce = audio_model(audio_input, args.task, mask_patch=400, cluster=cluster)
                 A_acc.append(torch.mean(acc).cpu())
                 A_nce.append(torch.mean(nce).cpu())
             elif args.task == 'pretrain_mpg':
-                mse = audio_model(audio_input, args.task, mask_patch=400)
+                mse = audio_model(audio_input, args.task, mask_patch=400, cluster=cluster)
                 # this is dirty code to track mse loss, A_acc and A_nce now track mse, not the name suggests
                 A_acc.append(torch.mean(mse).cpu())
                 A_nce.append(torch.mean(mse).cpu())
             elif args.task == 'pretrain_joint':
-                acc, _ = audio_model(audio_input, 'pretrain_mpc', mask_patch=400)
-                mse = audio_model(audio_input, 'pretrain_mpg', mask_patch=400)
+                acc, _ = audio_model(audio_input, 'pretrain_mpc', mask_patch=400, cluster=cluster)
+                mse = audio_model(audio_input, 'pretrain_mpg', mask_patch=400, cluster=cluster)
 
                 A_acc.append(torch.mean(acc).cpu())
                 # A_nce then tracks the mse loss

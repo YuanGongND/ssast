@@ -3,7 +3,7 @@
 # @Author  : Yuan Gong
 # @Affiliation  : Massachusetts Institute of Technology
 # @Email   : yuangong@mit.edu
-# @File    : ast_model_uni.py
+# @File    : ast_models.py
 
 # the unified ast models for all pretraining/fine-tuning tasks.
 
@@ -222,6 +222,11 @@ class ASTModel(nn.Module):
 
         while len(list(set(mask_id))) <= mask_size:
             start_id = randrange(sequence_len)
+
+            # this improves the efficiency, but might change the pretrained model
+            # while start_id in mask_id:
+            #     start_id = randrange(sequence_len)
+
             cur_mask = []
             for i in range(0, cur_clus):
                 for j in range(0, cur_clus):
@@ -285,7 +290,7 @@ class ASTModel(nn.Module):
         return x
 
     # masked patch pretraining with discriminative objective
-    def mpc(self, x, mask_patch, show_mask=False):
+    def mpc(self, x, mask_patch, cluster, show_mask=False):
         input = self.unfold(x).transpose(1, 2)
         B = x.shape[0]
         # x in shape (batch_size, sequence_len, embedding dim)
@@ -298,15 +303,16 @@ class ASTModel(nn.Module):
         mask_index = torch.empty((B, mask_patch), device=x.device, requires_grad=False).long()
         # size 12(batch_size) * 512(sequence_len) * 768(hidden_dim)
         mask_dense = torch.ones([x.shape[0], x.shape[1], x.shape[2]], device=x.device)
-        print(mask_dense.shape)
 
         # for each audio clip in the batch
         for i in range(B):
             # randomly generate #mask_patch mask indexes without duplicate
-            print(self.num_patches)
-            mask_index[i] = self.gen_maskid_patch(self.num_patches, mask_patch)
-            ## use this if you are masking frame, i.e., 128*2 patch
-            #mask_index[i] = self.gen_maskid_frame(512, mask_patch)
+            if cluster == True:
+                # use this if you are masking e.g. 16*16 patches
+                mask_index[i] = self.gen_maskid_patch(self.num_patches, mask_patch)
+            else:
+                # use this if you are masking frame, i.e., 128*2 patches
+                mask_index[i] = self.gen_maskid_frame(self.num_patches, mask_patch)
             # copy the masked embeddings, note gradients are stopped in this path
             encode_samples[i] = input[i, mask_index[i], :].clone().detach()
             # mask the encode samples with 0
@@ -379,7 +385,7 @@ class ASTModel(nn.Module):
             return pred, masked
 
     # # masked patch pretraining with generative objective
-    def mpg(self, input, mask_patch):
+    def mpg(self, input, mask_patch, cluster):
         B = input.shape[0]
         x = self.v.patch_embed(input)
         input = self.unfold(input).transpose(1, 2)
@@ -390,10 +396,12 @@ class ASTModel(nn.Module):
         mask_dense = torch.ones([x.shape[0], x.shape[1], x.shape[2]], device=x.device)
         for i in range(B):
             # randomly generate #mask_patch mask indexes without duplicate
-            print(self.num_patches)
-            mask_index[i] = self.gen_maskid_patch(self.num_patches, mask_patch)
-            ## use this if you are masking frame, i.e., 128*2 patches
-            #mask_index[i] = self.gen_maskid_frame(512, mask_patch)
+            if cluster == True:
+                # use this if you are masking e.g. 16*16 patches
+                mask_index[i] = self.gen_maskid_patch(self.num_patches, mask_patch)
+            else:
+                # use this if you are masking frame, i.e., 128*2 patches
+                mask_index[i] = self.gen_maskid_frame(self.num_patches, mask_patch)
             mask_dense[i, mask_index[i], :] = 0
 
         mask_tokens = self.mask_embed.expand(B, x.shape[1], -1)
@@ -424,7 +432,7 @@ class ASTModel(nn.Module):
 
         return mse
 
-    def forward(self, x, task, mask_patch=-1):
+    def forward(self, x, task, cluster=True, mask_patch=400):
         # expect input x = (batch_size, time_frame_num, frequency_bins), e.g., (12, 1024, 128)
         x = x.unsqueeze(1)
         x = x.transpose(2, 3)
@@ -438,12 +446,12 @@ class ASTModel(nn.Module):
             return self.finetuningcls(x)
         # pretraining, masked patch classification (discriminative objective)
         elif task == 'pretrain_mpc':
-            return self.mpc(x, mask_patch=mask_patch)
+            return self.mpc(x, mask_patch=mask_patch, cluster=cluster)
         # pretraining, masked patch reconstruction (generative objective)
         elif task == 'pretrain_mpg':
-            return self.mpg(x, mask_patch=mask_patch)
+            return self.mpg(x, mask_patch=mask_patch, cluster=cluster)
         elif task == 'visualize_mask':
-            return self.mpc(x, mask_patch=mask_patch, show_mask=True)
+            return self.mpc(x, mask_patch=mask_patch, cluster=cluster, show_mask=True)
         else:
             raise Exception('Task unrecognized.')
 

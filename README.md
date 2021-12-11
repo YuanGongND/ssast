@@ -11,35 +11,23 @@
 
 <p align="center"><img src="https://github.com/YuanGongND/ssast/blob/main/figure/ssast_ilus.png?raw=true" alt="Illustration of AST." width="300"/></p>
 
-This repository contains the official implementation (in PyTorch) of the **Audio Spectrogram Transformer (AST)** proposed in the Interspeech 2021 paper [AST: Audio Spectrogram Transformer](https://arxiv.org/abs/2104.01778) (Yuan Gong, Yu-An Chung, James Glass).  
+This repository contains the official implementation (in PyTorch) of the **Self-Supervised Audio Spectrogram Transformer (SSAST)** proposed in the AAAI 2022 paper [SSAST: Self-Supervised Audio Spectrogram Transformer](https://arxiv.org/abs/2110.09784) (Yuan Gong, Cheng-I Jeff Lai, Yu-An Chung, James Glass; MIT CSAIL).  
 
-AST is the first **convolution-free, purely** attention-based model for audio classification which supports variable length input and can be applied to various tasks. We evaluate AST on various audio classification benchmarks, where it achieves new state-of-the-art results of 0.485 mAP on AudioSet, 95.6% accuracy on ESC-50, and 98.1% accuracy on Speech Commands V2.  For details, please refer to the paper and the [ISCA SIGML talk](https://www.youtube.com/watch?v=CSRDbqGY0Vw).  
-  
-Please have a try! AST can be used with a few lines of code, and we also provide recipes to reproduce the SOTA results on AudioSet, ESC-50, and Speechcommands with almost one click.  
+SSAST is the first **patch-based** joint discriminative and generative self-supervised learning framework, and also the first self-supervised learning framework for AST. SSAST significantly boosts AST performance on all downstream tasks we evaluated with an average improvement of 60.9%, leading to similar or even better results than a supervised pretrained AST. SSAST can be used as  a drop-in replacement of previous ImageNet (supervised) pretrained AST. 
 
-The AST model file is in `src/models/ast_models.py`, the recipes are in `egs/[audioset,esc50,speechcommands]/run.sh`, when you run `run.sh`, it will call `/src/run.py`, which will then call `/src/dataloader.py` and `/src/traintest.py`, which will then call `/src/models/ast_models.py`.
+In this repository, we release the pretraining and fine-tuning code, and pretrained models. 
 
 ## Citing  
-Please cite our paper(s) if you find this repository useful. The first paper proposes the Audio Spectrogram Transformer while the second paper describes the training pipeline that we applied on AST to achieve the new state-of-the-art on AudioSet.   
+Please cite our paper if you find this repository useful. 
 ```  
-@inproceedings{gong21b_interspeech,
-  author={Yuan Gong and Yu-An Chung and James Glass},
-  title={{AST: Audio Spectrogram Transformer}},
-  year=2021,
-  booktitle={Proc. Interspeech 2021},
-  pages={571--575},
-  doi={10.21437/Interspeech.2021-698}
+@article{gong2021ssast,
+  title={SSAST: Self-Supervised Audio Spectrogram Transformer},
+  author={Gong, Yuan and Lai, Cheng-I Jeff and Chung, Yu-An and Glass, James},
+  journal={arXiv preprint arXiv:2110.09784},
+  year={2021}
 }
 ```  
-```  
-@ARTICLE{gong_psla, 
-    author={Gong, Yuan and Chung, Yu-An and Glass, James},  
-    journal={IEEE/ACM Transactions on Audio, Speech, and Language Processing},   
-    title={PSLA: Improving Audio Tagging with Pretraining, Sampling, Labeling, and Aggregation},   
-    year={2021}, 
-    doi={10.1109/TASLP.2021.3120633}
-}
-```  
+
   
 ## Getting Started  
 

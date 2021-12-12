@@ -2,6 +2,7 @@
  - [Introduction](#Introduction)
  - [Citing](#Citing)  
  - [Getting Started](#Getting-Started)
+ - [SSAST Model](#SSAST-Model) 
  - [Pretraining](#Pretraining)  
  - [Fine-tuning](#Fine-tuning)
  - [Pretrained Models](#Pretrained-Models)
@@ -13,7 +14,7 @@
 
 This repository contains the official implementation (in PyTorch) of the **Self-Supervised Audio Spectrogram Transformer (SSAST)** proposed in the AAAI 2022 paper [SSAST: Self-Supervised Audio Spectrogram Transformer](https://arxiv.org/abs/2110.09784) (Yuan Gong, Cheng-I Jeff Lai, Yu-An Chung, James Glass; MIT CSAIL).  
 
-SSAST is the first **patch-based** joint discriminative and generative self-supervised learning framework, and also the first self-supervised learning framework for AST. SSAST significantly boosts AST performance on all downstream tasks we evaluated with an average improvement of 60.9%, leading to similar or even better results than a supervised pretrained AST. SSAST can be used as a drop-in replacement of previous ImageNet (supervised) pretrained AST, and has the advantage of 1) no labeled data used; 2) flexible patch size and shape, ImagenNet pretraining only supports square patches; and 3) better performance on many tasks, in particular speech tasks.
+SSAST is the first **patch-based** joint discriminative and generative self-supervised learning framework, and also the first self-supervised learning framework for AST. SSAST significantly boosts AST performance on all downstream tasks we evaluated with an average improvement of 60.9%, leading to similar or even better results than a supervised pretrained AST. SSAST can be used as a drop-in replacement of previous ImageNet (supervised) pretrained AST, and has the advantage of 1) no labeled data is used; 2) flexible patch size and shape, ImagenNet pretraining only supports square patches; and 3) better performance on many tasks, in particular speech tasks.
 
 ## Citing  
 Please cite our paper if you find this repository useful. 
@@ -38,25 +39,30 @@ source venvast/bin/activate
 pip install -r requirements.txt 
 ```
   
-Step 2. Test the AST model.
+
+## SSAST Model
+
+The SSAST model script is in ``src/models/ast_models.py``. 
 
 ```python
-ASTModel(label_dim=527, \
-         fstride=10, tstride=10, \
-         input_fdim=128, input_tdim=1024, \
-         imagenet_pretrain=True, audioset_pretrain=False, \
-         model_size='base384')
+ASTModel(label_dim=527,
+         fshape=16, tshape=16 fstride=10, tstride=10,
+         input_fdim=128, input_tdim=1024, model_size='base',
+         pretrain_stage=True, load_pretrained_mdl_path=None)
 ```  
 
 **Parameters:**\
-`label_dim` : The number of classes (default:`527`).\
-`fstride`:  The stride of patch spliting on the frequency dimension, for 16\*16 patchs, fstride=16 means no overlap, fstride=10 means overlap of 6 (used in the paper). (default:`10`)\
-`tstride`:  The stride of patch spliting on the time dimension, for 16*16 patchs, tstride=16 means no overlap, tstride=10 means overlap of 6 (used in the paper). (default:`10`)\
-`input_fdim`: The number of frequency bins of the input spectrogram. (default:`128`)\
-`input_tdim`: The number of time frames of the input spectrogram. (default:`1024`, i.e., 10.24s)\
-`imagenet_pretrain`: If `True`, use ImageNet pretrained model. (default: `True`, we recommend to set it as `True` for all tasks.)\
-`audioset_pretrain`: If`True`,  use full AudioSet And ImageNet pretrained model. Currently only support `base384` model with `fstride=tstride=10`. (default: `False`, we recommend to set it as `True` for all tasks except AudioSet.)\
-`model_size`: The model size of AST, should be in `[tiny224, small224, base224, base384]` (default: `base384`).
+`label_dim` : The number of classes, only need to specify in the fine-tuning stage.\
+`fshape`: The side length of the patch on the frequency dimension. \
+`tshape`: The side length of the patch on the time dimension. \
+`fstride`:  The stride of patch spliting on the frequency dimension, for 16\*16 patchs, fstride=16 means no overlap, fstride=10 means overlap of 6. \
+`tstride`:  The stride of patch spliting on the time dimension, for 16*16 patchs, tstride=16 means no overlap, tstride=10 means overlap of 6. \
+`input_fdim`: The number of frequency bins of the input spectrogram.\
+`input_tdim`: The number of time frames of the input spectrogram. \
+`model_size`: The model size of AST, should be in `[tiny, small, base]` (default: `base`). \
+`pretrain_stage`: Set as ``True`` in the self-supervised pretraining stage and ``False`` in the fine-tuning stage. \
+`load_pretrained_mdl_path`: The pretrained model used for fine-tuning. Only needed when `pretrain_stage=False` as it is for fine-tuning. 
+
 
 **Input:** Tensor in shape `[batch_size, temporal_frame_num, frequency_bin_num]`. Note: the input spectrogram should be normalized with dataset mean and std, see [here](https://github.com/YuanGongND/ast/blob/102f0477099f83e04f6f2b30a498464b78bbaf46/src/dataloader.py#L191). \
 **Output:** Tensor of raw logits (i.e., without Sigmoid) in shape `[batch_size, label_dim]`.

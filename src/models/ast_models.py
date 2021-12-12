@@ -54,7 +54,7 @@ def get_sinusoid_encoding(n_position, d_hid):
 class ASTModel(nn.Module):
     def __init__(self, label_dim=527,
                  fshape=128, tshape=2, fstride=128, tstride=2,
-                 input_fdim=128, input_tdim=1024, model_size='base384',
+                 input_fdim=128, input_tdim=1024, model_size='base',
                  pretrain_stage=True, load_pretrained_mdl_path=None):
 
         super(ASTModel, self).__init__()
@@ -71,28 +71,24 @@ class ASTModel(nn.Module):
                 raise ValueError('fstride != fshape or tstride != tshape, they must be same at the pretraining stage, patch split overlapping is not supported.')
 
             # if AudioSet pretraining is not used (but ImageNet pretraining may still apply)
-            if model_size == 'tiny224':
+            if model_size == 'tiny':
                 self.v = timm.create_model('vit_deit_tiny_distilled_patch16_224', pretrained=False)
                 self.heads, self.depth = 3, 12
                 self.cls_token_num = 2
-            elif model_size == 'small224':
+            elif model_size == 'small':
                 self.v = timm.create_model('vit_deit_small_distilled_patch16_224', pretrained=False)
                 self.heads, self.depth = 6, 12
                 self.cls_token_num = 2
-            elif model_size == 'base224':
-                self.v = timm.create_model('vit_deit_base_distilled_patch16_224', pretrained=False)
-                self.heads, self.depth = 12, 12
-                self.cls_token_num = 2
-            elif model_size == 'base384':
+            elif model_size == 'base':
                 self.v = timm.create_model('vit_deit_base_distilled_patch16_384', pretrained=False)
                 self.heads, self.depth = 12, 12
                 self.cls_token_num = 2
-            elif model_size == 'base384_nokd':
+            elif model_size == 'base_nokd':
                 self.v = timm.create_model('vit_deit_base_patch16_384', pretrained=False)
                 self.heads, self.depth = 12, 12
                 self.cls_token_num = 1
             else:
-                raise Exception('Model size must be one of tiny224, small224, base224, base384, base384_nokd')
+                raise Exception('Model size must be one of tiny, small, base, base_nokd')
 
             self.original_num_patches = self.v.patch_embed.num_patches
             self.oringal_hw = int(self.original_num_patches ** 0.5)
@@ -460,7 +456,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ast_mdl = ASTModel(
                  fshape=16, tshape=16, fstride=16, tstride=16,
-                 input_fdim=128, input_tdim=512, model_size='base384',
+                 input_fdim=128, input_tdim=512, model_size='base',
                  pretrain=True)
     test_input = torch.zeros([1, input_tdim, 128]).to(device)
     ast_mdl(test_input, task='pretrain_mpc', mask_patch=100)

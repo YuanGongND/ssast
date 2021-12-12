@@ -29,7 +29,7 @@ dataset_mean=-4.2677393
 dataset_std=4.5689974
 target_length=1024
 
-model_size='tiny224'
+model_size=tiny
 # no patch split overlap
 fshape=128
 tshape=2

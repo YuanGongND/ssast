@@ -3,7 +3,7 @@
  - [Citing](#Citing)  
  - [Getting Started](#Getting-Started)
  - [SSAST Model](#SSAST-Model) 
- - [Pretraining](#Pretraining)  
+ - [Self-Supervised Pretraining](#Self-Supervised-Pretraining)  
  - [Fine-tuning](#Fine-tuning)
  - [Pretrained Models](#Pretrained-Models)
  - [Contact](#Contact)
@@ -137,7 +137,48 @@ print(prediction.shape)
 # calculate the loss, do back propagate, etc
 ```
 
-## Pretraining
+## Data Preparation
+
+For both pretraining and fine-tuning, our dataloader requires two files:
+* A json file containing path of the audio and corresponding label.
+  * Self-supervised pretraining does not  need any label, but our current version of `dataloader.py` needs label information to run, you can use a dummy label for pretraining data. Below is an example json file.
+
+```json
+ {
+    "data": [
+        {
+            "wav": "/data/sls/audioset/data/audio/eval/_/_/--4gqARaEJE_0.000.flac",
+            "labels": "/m/068hy,/m/07q6cd_,/m/0bt9lr,/m/0jbk"
+        },
+        {
+            "wav": "/data/sls/audioset/data/audio/eval/_/_/--BfvyPmVMo_20.000.flac",
+            "labels": "/m/03l9g"
+        },
+      // ... many audio files
+        {
+            "wav": "/data/sls/audioset/data/audio/eval/_/0/-0BIyqJj9ZU_30.000.flac",
+            "labels": "/m/07rgt08,/m/07sq110,/t/dd00001"
+        }
+    ]
+}
+```
+* A csv file containing label information. The labels should be consistent with those in the json file.
+  * Again, even for self-supervised pretraining, a dummy csv file is needed.
+```csv
+index,mid,display_name
+0,/m/07rwj00,"dog"
+1,/m/07rwj01,"rooster"
+2,/m/07rwj02,"pig"
+...
+```
+
+Examples: we provide our script to prepare data for a set of datasets.
+* Librispeech: we have librispeech preparion 
+* FSD50K: FSD50K is not used in the paper, but it is AudioSet-like, we are not able to process 
+
+
+
+## Self-Supervised Pretraining
 
 The pretraining scripts are in `src/pretrain/`, we provide scripts to pretrain tiny/base and patch-based/frame-based AST model. The one we use for our main model in the paper is ``src/pretrain/run_mask_patch.sh``.
 The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. 

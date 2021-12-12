@@ -142,8 +142,11 @@ class ASTModel(nn.Module):
                 raise ValueError('Please set load_pretrained_mdl_path to load a pretrained models.')
             sd = torch.load(load_pretrained_mdl_path, map_location=device)
             # get the fshape and tshape, input_fdim and input_tdim in the pretraining stage
-            p_fshape, p_tshape = sd['module.v.patch_embed.proj.weight'].shape[2], sd['module.v.patch_embed.proj.weight'].shape[3]
-            p_input_fdim, p_input_tdim = sd['module.p_input_fdim'].item(), sd['module.p_input_tdim'].item()
+            try:
+                p_fshape, p_tshape = sd['module.v.patch_embed.proj.weight'].shape[2], sd['module.v.patch_embed.proj.weight'].shape[3]
+                p_input_fdim, p_input_tdim = sd['module.p_input_fdim'].item(), sd['module.p_input_tdim'].item()
+            except:
+                raise  ValueError('The model loaded is not from a torch.nn.Dataparallel object. Wrap it with torch.nn.Dataparallel and try again.')
 
             print('now load a SSL pretrained models from ' + load_pretrained_mdl_path)
             # during pretraining, fstride=fshape and tstride=tshape because no patch overlapping is used

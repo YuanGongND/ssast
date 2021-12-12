@@ -186,16 +186,20 @@ Examples: we provide our script to prepare data for a set of datasets.
 The pretraining scripts are in `src/pretrain/`, we provide scripts to pretrain tiny/base and patch-based/frame-based AST model. The one we use for our main model in the paper is ``src/pretrain/run_mask_patch.sh``.
 The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the data as mentioned in [#Data-Preparation].
 
-## Pretrained Models
-|       Model Name      |      Pretrain Data     | Pretrain Patch Shape  (fshape) | Pretrain Patch Shape  (tshape) | Pretrain # Masked  Patches | Model Size | #Params | Avg Audio  Performance | Avg Speech  Performance |   Link   |
-|:---------------------:|:----------------------:|:------------------------------:|:------------------------------:|:--------------------------:|:----------:|:-------:|:----------------------:|:-----------------------:|:--------:|
-|  SSAST-Base-Patch-400 | AudioSet + Librispeech |               16               |               16               |             400            |    Base    |   89M   |          59.9          |           79.5          | Download |
-|  SSAST-Base-Patch-250 | AudioSet + Librispeech |               16               |               16               |             250            |    Base    |   89M   |          58.6          |           79.5          | Download |
-|  SSAST-Base-Frame-400 | AudioSet + Librispeech |               128              |                2               |             400            |    Base    |   89M   |          57.6          |           84.0          | Download |
-|  SSAST-Base-Frame-250 | AudioSet + Librispeech |               128              |                2               |             250            |    Base    |   89M   |          55.6          |           81.6          | Download |
-| SSAST-Small-Patch-400 | AudioSet + Librispeech |               16               |               16               |             400            |    Small   |   23M   |          58.1          |           78.2          | Download |
-|  SSAST-Tiny-Patch-400 | AudioSet + Librispeech |               16               |               16               |             400            |    Tiny    |    6M   |          53.3          |           75.7          | Download |
-|  SSAST-Tiny-Frame-400 | AudioSet + Librispeech |               128              |                2               |             400            |    Tiny    |    6M   |          47.8          |          ~78.2          | Download |
+## Pretrained-Models
+
+We provide the following self-supervised pretrained models. All models are trained with full AudioSet + Librispeech. Click the model name to download. Tiny model should be able to pretrain and fine-tune on an 8GB GPU with a reasonable batch size.
+
+|       Model Name      | Pretrain fshape | Pretrain tshape | # Masked   Patches | Model Size | #Params | Avg Audio  Performance | Avg Speech  Performance |
+|:---------------------:|:---------------:|:---------------:|:------------------:|:----------:|:-------:|:----------------------:|:-----------------------:|
+|  [SSAST-Base-Patch-400]() |        16       |        16       |         400        |    Base    |   89M   |          59.9          |           79.5          |
+|  [SSAST-Base-Patch-250]() |        16       |        16       |         250        |    Base    |   89M   |          58.6          |           79.5          |
+|  [SSAST-Base-Frame-400]() |       128       |        2        |         400        |    Base    |   89M   |          57.6          |           84.0          |
+|  [SSAST-Base-Frame-250]() |       128       |        2        |         250        |    Base    |   89M   |          55.6          |           81.6          |
+|  [SSAST-Small-Patch-400]() |        16       |        16       |         400        |    Small   |   23M   |          58.1          |           78.2          |
+|  [SSAST-Tiny-Patch-400]() |        16       |        16       |         400        |    Tiny    |    6M   |          53.3          |           75.7          |
+|  [SSAST-Tiny-Frame-400]() |       128       |        2        |         400        |    Tiny    |    6M   |          47.8          |          untested          |
+
 ## Use Pretrained Model For Downstream Tasks
 
 You can use the pretrained AST model for your own dataset. There are two ways to doing so.

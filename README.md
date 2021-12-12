@@ -63,33 +63,72 @@ ASTModel(label_dim=527,
 `pretrain_stage`: Set as ``True`` in the self-supervised pretraining stage and ``False`` in the fine-tuning stage. \
 `load_pretrained_mdl_path`: The pretrained model used for fine-tuning. Only needed when `pretrain_stage=False` as it is for fine-tuning. 
 
+**Methods:**\
+`forward(x, task, cluster=True, mask_patch=400)` \
+The entry method of the class that calls fine-tuning and pretraining methods. Parameters:
+* `x`: the input spectrogram in shape `[batch_size, time_frame_num, frequency_bin_num]. `Note: the input spectrogram should be normalized with dataset mean and std, see [here](https://github.com/YuanGongND/ast/blob/102f0477099f83e04f6f2b30a498464b78bbaf46/src/dataloader.py#L191).
+* `task`: the pretraining or fine-tuning task, should in `[ft_avgtok, ft_cls, pretrain_mpc, pretrain_mpg]`, see below for details.
+* `cluster`: set `True` if using cluster patch masking strategy.
+* `mask_patch`: the number of patch masked, only needed in the pretraining stage.
 
-**Input:** Tensor in shape `[batch_size, temporal_frame_num, frequency_bin_num]`. Note: the input spectrogram should be normalized with dataset mean and std, see [here](https://github.com/YuanGongND/ast/blob/102f0477099f83e04f6f2b30a498464b78bbaf46/src/dataloader.py#L191). \
-**Output:** Tensor of raw logits (i.e., without Sigmoid) in shape `[batch_size, label_dim]`.
+`finetuningavgtok(x)`: fine-tune the model by using the average of the outputs of all tokens as the clip represention. Return in shape `[batch_size, label_dim]`.
 
-``` 
-cd ast/src
-python
-```  
+`finetuningcls(x)`: fine-tune the model by using the output of the `cls` token as clip represention. Return in shape `[batch_size, label_dim]`.
 
-```python
-import os 
-import torch
-from models import ASTModel 
-# download pretrained model in this directory
-os.environ['TORCH_HOME'] = '../pretrained_models'  
-# assume each input spectrogram has 100 time frames
-input_tdim = 100
-# assume the task has 527 classes
-label_dim = 527
-# create a pseudo input: a batch of 10 spectrogram, each with 100 time frames and 128 frequency bins 
-test_input = torch.rand([10, input_tdim, 128]) 
-# create an AST model
-ast_mdl = ASTModel(label_dim=label_dim, input_tdim=input_tdim, imagenet_pretrain=True)
-test_output = ast_mdl(test_input) 
-# output should be in shape [10, 527], i.e., 10 samples, each with prediction of 527 classes. 
-print(test_output.shape)  
-```  
+`mpc(x, mask_patch=mask_patch, cluster=cluster)`: pretrain the model with `mask_patch` number of masked patches with the discriminative objective. Return the accuracy and NCE loss of the pretext task.
+
+`mpg(x, mask_patch=mask_patch, cluster=cluster)`: pretrain the model with `mask_patch` number of masked patches with the generative objective. Return the mean square error of the pretext task.
+
+**Example:**
+``` python
+# pretraining stage
+# suppose you have an unlabled dataset with avg length of 1024 frames (i.e., 10.24s)
+input_tdim = 1024
+# create a 16*16 patch based AST model for pretraining.
+# note, we don't use patch split overlap in pretraining, so fstride=fshape and tstride=tshape
+ast_mdl = ASTModel(
+             fshape=16, tshape=16, fstride=16, tstride=16,
+             input_fdim=128, input_tdim=input_tdim, model_size='base',
+             pretrain_stage=True)
+# # alternatively, create a frame based AST model
+# ast_mdl = ASTModel(
+#              fshape=128, tshape=2, fstride=128, tstride=2,
+#              input_fdim=128, input_tdim=input_tdim, model_size='base',
+#              pretrain=True)
+
+# do pretraining, see src/traintest_mask.py for our full pretraining code
+# input in shape [batch_size, input_tdim, input_fdim]
+test_input = torch.zeros([10, input_tdim, 128])
+# mask 100 patches for both discriminative and generative loss
+acc, nce_loss = ast_mdl(test_input, task='pretrain_mpc', mask_patch=100)
+mse_loss = ast_mdl(test_input, task='pretrain_mpg', mask_patch=100)
+loss = nce_loss + 10 * mse_loss
+# do back propagate and update the model, etc
+
+# after pretraining, save the pretrained model.
+# the code is designed for Dataparallel model
+ast_mdl = torch.nn.DataParallel(ast_mdl)
+torch.save(ast_mdl.state_dict(), './test_mdl.pth')
+
+# fine-tuning stage
+# now you have a labeled dataset you want to finetune AST on, suppose the avg length is 100 frames (1s) and there are 35 classes
+# load the saved model, the fshape and tshape must be same with the pretraining setting, but fstride and tstride can be different, 
+# using smaller strides improves the performance but also increase the computational overhead
+# set pretrain_stage as False since now is in the finetuning stage, provide the path of the pretrained model you want to load
+input_tdim = 100  # fine-tuning data length can be different with pretraining data length
+ast_mdl = ASTModel(label_dim=35,
+             fshape=16, tshape=16, fstride=10, tstride=10,
+             input_fdim=128, input_tdim=input_tdim, model_size='base',
+             pretrain_stage=False, load_pretrained_mdl_path='./test_mdl.pth')
+
+# do finetuning, see src/traintest.py for our finetuning code
+test_input = torch.zeros([10, input_tdim, 128])
+prediction = ast_mdl(test_input, task='ft_avgtok')
+# output should in shape [batch_size, label_dim]
+print(prediction.shape)
+# calculate the loss, do back propagate, etc
+```
+
 
 ## ESC-50 Recipe  
 The ESC-50 recipe is in `ast/egs/esc50/run_esc.sh`, the script will automatically download the ESC-50 dataset and resample it to 16kHz, then run standard 5-cross validation and report the result.

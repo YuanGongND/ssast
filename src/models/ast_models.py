@@ -487,10 +487,13 @@ if __name__ == '__main__':
     torch.save(ast_mdl.state_dict(), './test_mdl.pth')
 
     # fine-tuning stage
-    # now you have a labeled dataset you want to finetune AST on, suppose the avg length is 100 frames (1s) and there are 35 classes
-    # load the saved model, the fshape and tshape must be same with the pretraining setting, but fstride and tstride can be different,
+    # now you have a labeled dataset you want to finetune AST on
+    # suppose the avg length is 100 frames (1s) and there are 35 classes
+    # the fshape and tshape must be same in pretraining and finetuning
+    # but fstride and tstride can be different in pretraining and finetuning
     # using smaller strides improves the performance but also increase the computational overhead
-    # set pretrain_stage as False since now is in the finetuning stage, provide the path of the pretrained model you want to load
+    # set pretrain_stage as False since now is in the finetuning stage
+    # provide the path of the pretrained model you want to load
     input_tdim = 100  # fine-tuning data length can be different with pretraining data length
     ast_mdl = ASTModel(label_dim=35,
                  fshape=16, tshape=16, fstride=10, tstride=10,

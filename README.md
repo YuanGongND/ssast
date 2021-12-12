@@ -186,37 +186,23 @@ Examples: we provide our script to prepare data for a set of datasets.
 The pretraining scripts are in `src/pretrain/`, we provide scripts to pretrain tiny/base and patch-based/frame-based AST model. The one we use for our main model in the paper is ``src/pretrain/run_mask_patch.sh``.
 The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the data as mentioned in [#Data-Preparation].
 
+## Fine-tuning
+
 ## Pretrained-Models
 
 We provide the following self-supervised pretrained models. All models are trained with full AudioSet + Librispeech. Click the model name to download. Tiny model should be able to pretrain and fine-tune on an 8GB GPU with a reasonable batch size.
 
 |       Model Name      | Pretrain fshape | Pretrain tshape | # Masked   Patches | Model Size | #Params | Avg Audio  Performance | Avg Speech  Performance |
 |:---------------------:|:---------------:|:---------------:|:------------------:|:----------:|:-------:|:----------------------:|:-----------------------:|
-|  [SSAST-Base-Patch-400]() |        16       |        16       |         400        |    Base    |   89M   |          59.9          |           79.5          |
-|  [SSAST-Base-Patch-250]() |        16       |        16       |         250        |    Base    |   89M   |          58.6          |           79.5          |
-|  [SSAST-Base-Frame-400]() |       128       |        2        |         400        |    Base    |   89M   |          57.6          |           84.0          |
-|  [SSAST-Base-Frame-250]() |       128       |        2        |         250        |    Base    |   89M   |          55.6          |           81.6          |
-|  [SSAST-Small-Patch-400]() |        16       |        16       |         400        |    Small   |   23M   |          58.1          |           78.2          |
-|  [SSAST-Tiny-Patch-400]() |        16       |        16       |         400        |    Tiny    |    6M   |          53.3          |           75.7          |
-|  [SSAST-Tiny-Frame-400]() |       128       |        2        |         400        |    Tiny    |    6M   |          47.8          |          untested          |
+|  [SSAST-Base-Patch-400](https://www.dropbox.com/s/ewrzpco95n9jdz6/SSAST-Base-Patch-400.pth?dl=1) |        16       |        16       |         400        |    Base    |   89M   |          59.9          |           79.5          |
+|  [SSAST-Base-Patch-250](https://www.dropbox.com/s/mxrm9qog6aj8hif/SSAST-Base-Patch-250.pth?dl=1) |        16       |        16       |         250        |    Base    |   89M   |          58.6          |           79.5          |
+|  [SSAST-Base-Frame-400](https://www.dropbox.com/s/nx6nl4d4bl71sm8/SSAST-Base-Frame-400.pth?dl=1) |       128       |        2        |         400        |    Base    |   89M   |          57.6          |           84.0          |
+|  [SSAST-Base-Frame-250](https://www.dropbox.com/s/4e6l7ulhwrfoana/SSAST-Base-Frame-250.pth?dl=1) |       128       |        2        |         250        |    Base    |   89M   |          55.6          |           81.6          |
+|  [SSAST-Small-Patch-400](https://www.dropbox.com/s/i24w446rl9pkf05/SSAST-Small-Patch-400.pth?dl=1) |        16       |        16       |         400        |    Small   |   23M   |          58.1          |           78.2          |
+|  [SSAST-Tiny-Patch-400](https://www.dropbox.com/s/fkbtf78y94113wz/SSAST-Tiny-Patch-400.pth?dl=1) |        16       |        16       |         400        |    Tiny    |    6M   |          53.3          |           75.7          |
+|  [SSAST-Tiny-Frame-400](https://www.dropbox.com/s/rx7g60ruzawffzv/SSAST-Tiny-Frame-400.pth?dl=1) |       128       |        2        |         400        |    Tiny    |    6M   |          47.8          |          untested          |
 
-## Use Pretrained Model For Downstream Tasks
-
-You can use the pretrained AST model for your own dataset. There are two ways to doing so.
-
-You can of course only take ``ast/src/models/ast_models.py``, set ``audioset_pretrain=True``, and use it with your training pipeline, the only thing need to take care of is the input normalization, we normalize our input to 0 mean and 0.5 std. To use the pretrained model, you should roughly normalize the input to this range. You can check ``ast/src/get_norm_stats.py`` to see how we compute the stats, or you can try using our AudioSet normalization ``input_spec = (input_spec + 4.26) / (4.57 * 2)``. Using your own training pipeline might be easier if you already have a good one.
-Please note that AST needs smaller learning rate (we use 10 times smaller learning rate than our CNN model proposed in the [PSLA paper](https://arxiv.org/abs/2102.01243)) and converges faster, so please search the learning rate and learning rate scheduler for your task. 
-
-If you want to use our training pipeline, you would need to modify below for your new dataset.
-1. You need to create a json file, and a label index for your dataset, see ``ast/egs/audioset/data/`` for an example.
-2. In ``/your_dataset/run.sh``, you need to specify the data json file path, the SpecAug parameters (``freqm`` and ``timem``, we recommend to mask 48 frequency bins out of 128, and 20% of your time frames), the mixup rate (i.e., how many samples are mixup samples), batch size, initial learning rate, etc. Please see ``ast/egs/[audioset,esc50,speechcommands]/run.sh]`` for samples.
-3. In ``ast/src/run.py``, line 60-65, you need to add the normalization stats, the input frame length, and if noise augmentation is needed for your dataset. Also take a look at line 101-127 if you have a seperate validation set. For normalization stats, you need to compute the mean and std of your dataset (check ``ast/src/get_norm_stats.py``) or you can try using our AudioSet normalization ``input_spec = (input_spec + 4.26) / (4.57 * 2)``.
-4. In ``ast/src/traintest.`` line 55-82, you need to specify the learning rate scheduler, metrics, warmup setting and the optimizer for your task.
-
-To summarize, to use our training pipeline, you need to creat data files and modify the above three python scripts. You can refer to our ESC-50 and Speechcommands recipes.
-
-Also, please note that we use `16kHz` audios for the pretrained model, so if you want to use the pretrained model, please prepare your data in `16kHz`.
-
+Above links are dropbox direct download links (i.e., wget works). For those don't have access to Dropbox, use a VPN or the [OneDrive Links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/EuAuTEZNYPhOmlLFFjRFvGUBcgnIXBqFgFE33GDK69h-Zw?e=d3MEgT).
 
  ## Contact
 If you have a question, please bring up an issue (preferred) or send me an email yuangong@mit.edu.

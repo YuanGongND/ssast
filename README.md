@@ -123,6 +123,11 @@ ast_mdl = ASTModel(label_dim=35,
              fshape=16, tshape=16, fstride=10, tstride=10,
              input_fdim=128, input_tdim=input_tdim, model_size='base',
              pretrain_stage=False, load_pretrained_mdl_path='./test_mdl.pth')
+# # alternatively, use a frame based AST model
+# ast_mdl = ASTModel(label_dim=35,
+#              fshape=128, tshape=2, fstride=128, tstride=1,
+#              input_fdim=128, input_tdim=input_tdim, model_size='base',
+#              pretrain_stage=False, load_pretrained_mdl_path='./test_mdl.pth')
 
 # do finetuning, see src/traintest.py for our finetuning code
 test_input = torch.zeros([10, input_tdim, 128])

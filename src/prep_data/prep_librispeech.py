@@ -3,9 +3,9 @@
 # @Author  : Yuan Gong
 # @Affiliation  : Massachusetts Institute of Technology
 # @Email   : yuangong@mit.edu
-# @File    : prep_howto100m.py
+# @File    : prep_librispeech.py
 
-# go through the librispeech
+# prepare librispeech data for ssl pretraining
 
 import os,torchaudio,pickle,json,time
 
@@ -18,22 +18,13 @@ def walk(path, name):
         for file in files:
             if file.endswith('.flac'):
                 sample_cnt += 1
-                waveform, sr = torchaudio.load(root + os.sep + file)
-                # print('audio length = {:.3f}'.format(waveform.shape[1]/sr))
-                # split into 10s clips, abandon the rest.
-                clip_num = int(waveform.shape[1]/sr/10) + 1
 
-                for i in range(clip_num):
-                    # 	/m/09x0r is dummy label, label is not needed for SSL
-                    cur_path = root + os.sep + file
-                    cur_dict = {"wav": cur_path, "labels": '/m/09x0r', 'segment': str(i)}
-                    wav_list.append(cur_dict)
-                    # comment this out if not want to include multiple segments in.
-                    break
+                cur_path = root + os.sep + file
+                # give a dummy label of 'speech' ('/m/09x0r' in AudioSet label ontology) to all librispeech samples
+                # the label is not used in the pretraining, it is just to make the dataloader.py satisfy.
+                cur_dict = {"wav": cur_path, "labels": '/m/09x0r'}
+                wav_list.append(cur_dict)
 
-                #print('audio clips = {:d}'.format(clip_num))
-                if sr != 16000:
-                    print(root + os.sep + file + ' sampling rate is not 16k!')
                 if sample_cnt % 1000 == 0:
                     end_time = time.time()
                     print('find {:d}k .wav files, time eclipse: {:.1f} seconds.'.format(int(sample_cnt/1000), end_time-begin_time))
@@ -66,8 +57,3 @@ librispeech100_path = '/data/sls/scratch/yuangong/l2speak/data/librispeech/Libri
 walk(librispeech100_path, 'librispeech_tr100_cut')
 
 combine_json(['librispeech_tr500_cut', 'librispeech_tr360_cut', 'librispeech_tr100_cut'], name='librispeech_tr960_cut')
-
-# librispeech100_path = '/data/sls/scratch/yuangong/l2speak/gop/librispeech/data/LibriSpeech/test-clean/'
-# walk(librispeech100_path, 'librispeech_teclean')
-
-#combine_json(['librispeech100', 'librispeech100'])

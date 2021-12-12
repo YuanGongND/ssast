@@ -41,7 +41,7 @@ batch_size=24
 lr=1e-4
 # learning rate decreases if the pretext task performance does not improve on the validation set
 lr_patience=2
-epoch=20
+epoch=10
 # no spectrogram masking
 freqm=0
 timem=0

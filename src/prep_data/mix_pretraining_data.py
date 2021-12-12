@@ -28,16 +28,6 @@ def combine_json(file_list, name='audioset_librispeech960'):
 
 
 if __name__ == '__main__':
-    #fsd50k_data = '/data/sls/scratch/yuangong/aed-pc/datafiles/fsd50k_tr_full.json'
     audioset_data = '/data/sls/scratch/yuangong/aed-pc/src/enhance_label/datafiles_local/whole_train_data.json'
-    #howto100m_data = '/data/sls/scratch/yuangong/sslast2/src/how100m/howto100m.json'
     librispeech_data = '/data/sls/scratch/yuangong/sslast2/src/prep_data/librispeech_tr960_cut.json'
-
-    #combine_json([audioset_data, librispeech_data, fsd50k_data], name='as_li_fsd')
     combine_json([audioset_data, librispeech_data], name='audioset_librispeech')
-
-# mix speech and non-speech data.
-
-# mix howto100m with full audioset
-
-# mix librispeech960 with full audioset.

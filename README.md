@@ -3,6 +3,7 @@
  - [Citing](#Citing)  
  - [Getting Started](#Getting-Started)
  - [SSAST Model](#SSAST-Model) 
+ - [Data Preparation](#Data-Preparation)
  - [Self-Supervised Pretraining](#Self-Supervised-Pretraining)  
  - [Fine-tuning](#Fine-tuning)
  - [Pretrained Models](#Pretrained-Models)
@@ -141,7 +142,7 @@ print(prediction.shape)
 
 For both pretraining and fine-tuning, our dataloader requires two files:
 * A json file containing path of the audio and corresponding label.
-  * Self-supervised pretraining does not  need any label, but our current version of `dataloader.py` needs label information to run, you can use a dummy label for pretraining data. Below is an example json file.
+  * Self-supervised pretraining does not  need any label, but our current version of `dataloader.py` needs label information to run, you need to use a dummy label for pretraining data. Below is an example json file.
 
 ```json
  {
@@ -173,36 +174,28 @@ index,mid,display_name
 ```
 
 Examples: we provide our script to prepare data for a set of datasets.
-* Librispeech: we have librispeech preparion 
-* FSD50K: FSD50K is not used in the paper, but it is AudioSet-like, we are not able to process 
-
-
+* Librispeech: We have librispeech preparation code in `src/prep_data/librispeech/prep_librispeech.py`.
+* AudioSet: You will need to download and process AudioSet data by yourself as AudioSet are YouTube videos, please see [here](https://research.google.com/audioset/download.html).
+* FSD50K: FSD50K is not used in the paper, but FSD50K is AudioSet-like, 
+* ESC-50: in `src/prep_data/esc50/prep_esc.py`
+* Speechcommands V2-35: in `src/prep_data/speechcommands/prep_sc.py`
+* Combining multiple datasets: see `src/prep_data/mix_pretraining_data` for our code to combine librispeech and AudioSet (used in the paper).
 
 ## Self-Supervised Pretraining
 
 The pretraining scripts are in `src/pretrain/`, we provide scripts to pretrain tiny/base and patch-based/frame-based AST model. The one we use for our main model in the paper is ``src/pretrain/run_mask_patch.sh``.
-The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. 
+The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the data as mentioned in [#Data-Preparation].
 
 ## Pretrained Models
-We provide full AudioSet pretrained models and Speechcommands-V2-35 pretrained model.
-1. [Full AudioSet, 10 tstride, 10 fstride, with Weight Averaging (0.459 mAP)](https://www.dropbox.com/s/ca0b1v2nlxzyeb4/audioset_10_10_0.4593.pth?dl=1)
-2. [Full AudioSet, 10 tstride, 10 fstride, without Weight Averaging, Model 1 (0.450 mAP)](https://www.dropbox.com/s/1tv0hovue1bxupk/audioset_10_10_0.4495.pth?dl=1)
-3. [Full AudioSet, 10 tstride, 10 fstride, without Weight Averaging, Model 2  (0.448 mAP)](https://www.dropbox.com/s/6u5sikl4b9wo4u5/audioset_10_10_0.4483.pth?dl=1)
-4. [Full AudioSet, 10 tstride, 10 fstride, without Weight Averaging, Model 3  (0.448 mAP)](https://www.dropbox.com/s/kt6i0v9fvfm1mbq/audioset_10_10_0.4475.pth?dl=1)
-5. [Full AudioSet, 12 tstride, 12 fstride, without Weight Averaging, Model (0.447 mAP)](https://www.dropbox.com/s/snfhx3tizr4nuc8/audioset_12_12_0.4467.pth?dl=1)
-6. [Full AudioSet, 14 tstride, 14 fstride, without Weight Averaging, Model (0.443 mAP)](https://www.dropbox.com/s/z18s6pemtnxm4k7/audioset_14_14_0.4431.pth?dl=1)
-7. [Full AudioSet, 16 tstride, 16 fstride, without Weight Averaging, Model (0.442 mAP)](https://www.dropbox.com/s/mdsa4t1xmcimia6/audioset_16_16_0.4422.pth?dl=1)
-
-8. [Speechcommands V2-35, 10 tstride, 10 fstride, without Weight Averaging, Model (98.12% accuracy on evaluation set)](https://www.dropbox.com/s/q0tbqpwv44pquwy/speechcommands_10_10_0.9812.pth?dl=1)
-
-If you want to finetune AudioSet-pretrained AST model on your task, you can simply set the `audioset_pretrain=True` when you create the AST model, it will automatically download model 1 (`0.459 mAP`). In our ESC-50 recipe, AudioSet pretraining is used.
-
-If you want to reproduce ensemble experiments, you can download these models at one click using `ast/egs/audioset/download_models.sh`. Ensemble model 2-4 achieves `0.475 mAP`, Ensemble model 2-7 achieves and `0.485 mAP`. Once you download the model, you can try `ast/egs/audioset/ensemble.py`, you need to change the `eval_data_path` and `mdl_list` to run it. We attached our ensemble log in `/ast/egs/audioset/exp/ensemble-s.log` and `ensemble-m.log`.
-
-Please  note that we use `16kHz` audios for training and test (for all AudioSet, SpeechCommands, and ESC-50), so if you want to use the pretrained model, please prepare your data in `16kHz`.
-
-(Note: the above links are Dropbox direct links (i.e., can be downloaded by wget) and should work for most users. For users having issue downloading with the above Dropbox links, it is recommended to use a VPN or use the [OneDrive links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/ErLKkiP-GwVMgdsCeGEjsmoBMtGvXMkX3tCj5_I0E7ikNA?e=JE9Om8), however, OneDrive links are not direct link, please manually download the [`audioset_10_10_0.4593.pth`](https://mitprod-my.sharepoint.com/:u:/g/personal/yuangong_mit_edu/EWrY3raql55CqxZNV3cVSkABaoU7pXQxAeJXudE1PTNzQg?e=gwEICj) and place it in `ast/pretrained_models` if you want to set `audioset_pretrain=True` because the wget link in the `ast/src/models/ast_models.py` would fail if you cannot connect to Dropbox.) 
-
+|       Model Name      |      Pretrain Data     | Pretrain Patch Shape  (fshape) | Pretrain Patch Shape  (tshape) | Pretrain # Masked  Patches | Model Size | #Params | Avg Audio  Performance | Avg Speech  Performance |   Link   |
+|:---------------------:|:----------------------:|:------------------------------:|:------------------------------:|:--------------------------:|:----------:|:-------:|:----------------------:|:-----------------------:|:--------:|
+|  SSAST-Base-Patch-400 | AudioSet + Librispeech |               16               |               16               |             400            |    Base    |   89M   |          59.9          |           79.5          | Download |
+|  SSAST-Base-Patch-250 | AudioSet + Librispeech |               16               |               16               |             250            |    Base    |   89M   |          58.6          |           79.5          | Download |
+|  SSAST-Base-Frame-400 | AudioSet + Librispeech |               128              |                2               |             400            |    Base    |   89M   |          57.6          |           84.0          | Download |
+|  SSAST-Base-Frame-250 | AudioSet + Librispeech |               128              |                2               |             250            |    Base    |   89M   |          55.6          |           81.6          | Download |
+| SSAST-Small-Patch-400 | AudioSet + Librispeech |               16               |               16               |             400            |    Small   |   23M   |          58.1          |           78.2          | Download |
+|  SSAST-Tiny-Patch-400 | AudioSet + Librispeech |               16               |               16               |             400            |    Tiny    |    6M   |          53.3          |           75.7          | Download |
+|  SSAST-Tiny-Frame-400 | AudioSet + Librispeech |               128              |                2               |             400            |    Tiny    |    6M   |          47.8          |          ~78.2          | Download |
 ## Use Pretrained Model For Downstream Tasks
 
 You can use the pretrained AST model for your own dataset. There are two ways to doing so.

@@ -5,7 +5,7 @@
  - [SSAST Model](#SSAST-Model) 
  - [Data Preparation](#Data-Preparation)
  - [Self-Supervised Pretraining](#Self-Supervised-Pretraining)  
- - [Fine-tuning](#Fine-tuning-On-Downstream-Tasks)
+ - [Fine-tuning On Downstream Tasks](#Fine-tuning-On-Downstream-Tasks)
  - [Pretrained Models](#Pretrained-Models)
  - [Contact](#Contact)
 

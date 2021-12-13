@@ -3,6 +3,7 @@
 *.wav
 *.pyc
 *.flac
+*.DS_Store
 pretrained_model/*
 !pretrained_model/README.md
 src/models/check_load_model.py

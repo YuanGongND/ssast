@@ -31,15 +31,21 @@ Please cite our paper if you find this repository useful.
   
 ## Getting Started  
 
-Step 1. Clone or download this repository and set it as the working directory, create a virtual environment and install the dependencies.
+### Prepare the Environment
+Clone or download this repository and set it as the working directory, create a virtual environment and install the dependencies.
 
 ```
 cd ast/ 
-python3 -m venv venvast
-source venvast/bin/activate
+python3 -m venv venvssast
+source venvssast/bin/activate
 pip install -r requirements.txt 
 ```
-  
+
+### Where is the code?
+The SSAST model and pretraining function code is in `src/models/ast_model.py`.\
+The self-supervised pretraining script is `src/pretrain/{run_mask_{frame,patch}, run_mask_{frame,patch}_tiny}`, which calls `src/run.py`, which then calls `src/traintest_mask.py`, which then calls `src/models/ast_model.py`.\
+The fine-tuning scripts are in `src/finetune/`, for PSLA experiments, these scripts call `src/run.py`, which then calls `src/traintest.py`, which then calls `src/traintest_mask.py`, which then calls `src/models/ast_model.py`.\
+The data preparation samples are in `src/prep_data`.
 
 ## SSAST Model
 

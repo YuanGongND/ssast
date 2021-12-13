@@ -29,6 +29,7 @@ pretrain_model=SSAST-Base-Patch-400
 pretrain_path=./${pretrain_exp}/${pretrain_model}.pth
 
 dataset=audioset
+set=balanced
 dataset_mean=-4.2677393
 dataset_std=4.5689974
 target_length=1024
@@ -74,5 +75,5 @@ CUDA_CACHE_DISABLE=1 python -W ignore ../../run.py --dataset ${dataset} \
 --pretrained_mdl_path ${pretrain_path} \
 --dataset_mean ${dataset_mean} --dataset_std ${dataset_std} --target_length ${target_length} \
 --num_mel_bins 128 --head_lr ${head_lr} --noise ${noise} \
---lrscheduler_start 10 --lrscheduler_step 5 --lrscheduler_decay 0.5 --wa True --wa_start 6 wa_end 25 \
+--lrscheduler_start 10 --lrscheduler_step 5 --lrscheduler_decay 0.5 --wa True --wa_start 6 --wa_end 25 \
 --loss BCE --metrics mAP

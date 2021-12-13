@@ -52,7 +52,7 @@ ASTModel(label_dim=527,
          pretrain_stage=True, load_pretrained_mdl_path=None)
 ```  
 
-**Parameters:**\
+### Parameters:
 `label_dim` : The number of classes, only need to specify in the fine-tuning stage.\
 `fshape`: The side length of the patch on the frequency dimension. \
 `tshape`: The side length of the patch on the time dimension. \
@@ -64,7 +64,7 @@ ASTModel(label_dim=527,
 `pretrain_stage`: Set as ``True`` in the self-supervised pretraining stage and ``False`` in the fine-tuning stage. \
 `load_pretrained_mdl_path`: The pretrained model used for fine-tuning. Only needed when `pretrain_stage=False` as it is for fine-tuning. 
 
-**Methods:**\
+### Methods:
 `forward(x, task, cluster=True, mask_patch=400)` \
 The entry method of the class that calls fine-tuning and pretraining methods. Parameters:
 * `x`: the input spectrogram in shape `[batch_size, time_frame_num, frequency_bin_num]. `Note: the input spectrogram should be normalized with dataset mean and std, see [here](https://github.com/YuanGongND/ast/blob/102f0477099f83e04f6f2b30a498464b78bbaf46/src/dataloader.py#L191).
@@ -80,7 +80,7 @@ The entry method of the class that calls fine-tuning and pretraining methods. Pa
 
 `mpg(x, mask_patch=mask_patch, cluster=cluster)`: pretrain the model with `mask_patch` number of masked patches with the generative objective. Return the mean square error of the pretext task.
 
-**Example:**
+### Example:
 ``` python
 # pretraining stage
 # suppose you have an unlabled dataset with avg length of 1024 frames (i.e., 10.24s)
@@ -183,11 +183,11 @@ Examples: we provide our script to prepare data for a set of datasets.
 
 ## Self-Supervised Pretraining
 
-**Reproduce our experiments** \
+### Reproduce our experiments
 The pretraining scripts are in `src/pretrain/`, we provide scripts to pretrain tiny/base and patch-based/frame-based AST model. The one we use for our main model in the paper is ``src/pretrain/run_mask_patch.sh``.
 The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the data as mentioned in [Data Preparation](#Data-Preparation).
 
-**Pretrain on custom dataset** \
+### Pretrain on custom dataset
 First, prepare the data files (the json and csv file) as described in [Data Preparation](#Data-Preparation). \
 Second, modify our pretraining scripts are in `src/pretrain/`. Unless you have a resource constraint, it is always better to pretrain a base model than a tiny/small model. If your downstream task is speech, we suggest to train a frame-based SSAST (i.e., follow `run_mask_frame.sh`), if the downstream task is audio, we suggest to train a patch-based SSAST (i.e., follow `run_mask_patch.sh`). It is good to train and compare both. 
 

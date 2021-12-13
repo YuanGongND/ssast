@@ -57,7 +57,7 @@ model_size=base
 head_lr=1
 
 pretrain_path=./${pretrain_exp}/${pretrain_model}.pth
-base_exp_dir=./exp/test01-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_model}-${head_lr}x-noise${noise}
+base_exp_dir=./exp/test01-${dataset}-f${fstride}-${fshape}-t${tstride}-${tshape}-b${batch_size}-lr${lr}-${task}-${model_size}-${pretrain_exp}-${pretrain_model}-${head_lr}x-noise${noise}
 
 for((fold=1;fold<=5;fold++));
 do

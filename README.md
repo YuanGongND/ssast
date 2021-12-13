@@ -211,10 +211,9 @@ num_mel_bins=128
 ## Fine-tuning on Downstream Tasks
 
 ### PSLA training pipeline experiments 
-* **ESC-50:** We suggest to start from ESC-50 experiments as our recipe is almost one click (i.e., the script handles data downloading, data processing, pre-trained model downloading, training and evaluation). Check `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 
-* **Speech Commands V2-35:** Check
-* AudioSet. `src/finetune/esc50/audioset/`
-
+* **ESC-50:** We suggest to start from ESC-50 experiments as our recipe is almost one click (i.e., the script handles data downloading, data processing, pre-trained model downloading, training and evaluation). Check `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. To run, just `cd src/finetune/esc50` and then ` sbatch run_esc_{patch,frame}.sh` (slurm user) or `./run_esc_{patch,frame}.sh` (local user).
+* **Speech Commands V2-35:** Check `src/finetune/speechcommands_v2_35/run_sc.sh`. It is also one-click and handles everything. Just `cd src/finetune/speechcommands_v2_35`, and then `sbatch run_sc.sh` (slurm user) or `./run_sc.sh` (local user).
+* **AudioSet:** Check `src/finetune/audioset/run_as.sh`. Since AudioSet are YouTube videos, you will need to prepare the data by yourself. Note our experiment uses label enhanced balanced AudioSet, see [psla training pipeline](https://github.com/YuanGongND/psla) for how we enhance the label.
 
 ### SUPERB training pipeline experiments
 

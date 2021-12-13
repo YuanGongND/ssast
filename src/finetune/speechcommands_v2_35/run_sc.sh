@@ -16,7 +16,6 @@ set -x
 source ../../../venvssast/bin/activate
 export TORCH_HOME=../../pretrained_models
 mkdir -p ./exp
-mkdir -p ./slurm_log
 
 # prep speechcommands dataset and download the pretrained model
 if [ -e data/datafiles ]
@@ -51,13 +50,13 @@ timem=48
 mixup=0.6
 epoch=30
 batch_size=128
-fshape=16
-tshape=16
-fstride=10
-tstride=10
+fshape=128
+tshape=2
+fstride=128
+tstride=1
 
 task=ft_avgtok
-model_size=base384
+model_size=base
 head_lr=1
 
 pretrain_path=./${pretrain_exp}/${pretrain_model}.pth

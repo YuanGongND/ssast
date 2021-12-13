@@ -18,8 +18,22 @@ export TORCH_HOME=../../pretrained_models
 mkdir -p ./exp
 mkdir -p ./slurm_log
 
-pretrain_exp=patch_base_250
-pretrain_epoch=999
+# prep speechcommands dataset and download the pretrained model
+if [ -e data/datafiles ]
+then
+    echo "speechcommands already downloaded and processed."
+else
+    python prep_sc.py
+fi
+if [ -e SSAST-Base-Frame-400.pth ]
+then
+    echo "pretrained model already downloaded."
+else
+    wget https://www.dropbox.com/s/nx6nl4d4bl71sm8/SSAST-Base-Frame-400.pth?dl=1 -O SSAST-Base-Frame-400.pth
+fi
+
+pretrain_exp=
+pretrain_model=SSAST-Base-Frame-400
 
 dataset=speechcommands
 dataset_mean=-6.845978
@@ -46,8 +60,8 @@ task=ft_avgtok
 model_size=base384
 head_lr=1
 
-pretrain_path=/data/sls/scratch/yuangong/ssast/pretrained_model/${pretrain_exp}/audio_model.${pretrain_epoch}.pth
-exp_dir=./exp/test05-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_epoch}-${head_lr}x-noise${noise}-6
+pretrain_path=./${pretrain_exp}/${pretrain_model}.pth
+exp_dir=./exp/test01-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_model}-${head_lr}x-noise${noise}
 
 CUDA_CACHE_DISABLE=1 python -W ignore ../../run.py --dataset ${dataset} \
 --data-train ${tr_data} --data-val ${val_data} --data-eval ${eval_data} --exp-dir $exp_dir \

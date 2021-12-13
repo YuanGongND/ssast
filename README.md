@@ -212,7 +212,7 @@ num_mel_bins=128
 
 ### PSLA training pipeline experiments 
 * **ESC-50:** We suggest to start from ESC-50 experiments as our recipe is almost one click (i.e., the script handles data downloading, data processing, pre-trained model downloading, training and evaluation). Check `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 
-* **ESC-50:**
+* **Speech Commands V2-35:** Check
 * AudioSet. `src/finetune/esc50/audioset/`
 
 

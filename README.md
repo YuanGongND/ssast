@@ -222,7 +222,7 @@ num_mel_bins=128
 
 We provide the following self-supervised pretrained models. All models are trained with full AudioSet + Librispeech. Click the model name to download. Tiny model should be able to pretrain and fine-tune on an 8GB GPU with a reasonable batch size.
 
-|       Model Name      | Pretrain fshape | Pretrain tshape | # Masked   Patches | Model Size | #Params | Avg Audio  Performance | Avg Speech  Performance |
+|       Model Name      | Pretrain fshape | Pretrain tshape | #Masked   Patches | Model Size | #Params | Avg Audio  Performance | Avg Speech  Performance |
 |:---------------------:|:---------------:|:---------------:|:------------------:|:----------:|:-------:|:----------------------:|:-----------------------:|
 |  [SSAST-Base-Patch-400](https://www.dropbox.com/s/ewrzpco95n9jdz6/SSAST-Base-Patch-400.pth?dl=1) |        16       |        16       |         400        |    Base    |   89M   |          59.9          |           79.5          |
 |  [SSAST-Base-Patch-250](https://www.dropbox.com/s/mxrm9qog6aj8hif/SSAST-Base-Patch-250.pth?dl=1) |        16       |        16       |         250        |    Base    |   89M   |          58.6          |           79.5          |

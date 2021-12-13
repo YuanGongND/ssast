@@ -260,8 +260,8 @@ def train(audio_model, train_loader, test_loader, args):
         epoch += 1
 
         # break if lr too small
-        if optimizer.param_groups[0]['lr'] < args.lr/64 and epoch > 10:
-            break
+        # if optimizer.param_groups[0]['lr'] < args.lr/64 and epoch > 10:
+        #     break
 
         batch_time.reset()
         per_sample_time.reset()

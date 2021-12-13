@@ -211,8 +211,8 @@ num_mel_bins=128
 ## Fine-tuning
 
 ### PSLA training pipeline experiments 
-* ESC-50. We suggest to start from ESC-50 experiments as our recipe is almost one click. `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 
-* Speech Commands V2-35. 
+* **ESC-50:** We suggest to start from ESC-50 experiments as our recipe is almost one click (i.e., the script handles data downloading, data processing, pre-trained model downloading, training and evaluation). Check `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 
+* **ESC-50:**
 * AudioSet. `src/finetune/esc50/audioset/`
 
 
@@ -250,9 +250,8 @@ sbatch run_ks.sh
 ```
 You will set the result  logs in `yoursuperbpath/s3prl-master/s3prl/exp/expname/log.log`
 
-
-
-**Fine-tune on custom dataset** \
+### Fine-tune on custom dataset
+It is easy to fine-tune on a new dataset. In general, PSLA training pipeline is strong. You can start from any of the AudioSet, ESC-50, and SpeechCommands recipes (`run_sc.sh`, `run_esc_{frame,patch}.sh`, `run_as.sh`) and search the hyper-parameters. The only thing you need to modify is the shell script. For speech task, we suggest to fine-tune a frame-based SSAST, for audio task, we suggest to fine-tune a patch-based SSAST.
 
 ## Pretrained-Models
 

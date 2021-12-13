@@ -5,7 +5,7 @@
  - [SSAST Model](#SSAST-Model) 
  - [Data Preparation](#Data-Preparation)
  - [Self-Supervised Pretraining](#Self-Supervised-Pretraining)  
- - [Fine-tuning](#Fine-tuning)
+ - [Fine-tuning](#Fine-tuning-On-Downstream-Tasks)
  - [Pretrained Models](#Pretrained-Models)
  - [Contact](#Contact)
 
@@ -208,7 +208,7 @@ target_length=1024
 num_mel_bins=128
 ```
 
-## Fine-tuning
+## Fine-tuning on Downstream Tasks
 
 ### PSLA training pipeline experiments 
 * **ESC-50:** We suggest to start from ESC-50 experiments as our recipe is almost one click (i.e., the script handles data downloading, data processing, pre-trained model downloading, training and evaluation). Check `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 

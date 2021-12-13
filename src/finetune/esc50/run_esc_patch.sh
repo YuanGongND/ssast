@@ -13,7 +13,7 @@
 set -x
 # comment this line if not running on sls cluster
 . /data/sls/scratch/share-201907/slstoolchainrc
-source /data/sls/scratch/yuangong/sslast2/sslast2/bin/activate
+source ../../../venvssast/bin/activate
 export TORCH_HOME=../../pretrained_models
 mkdir exp
 

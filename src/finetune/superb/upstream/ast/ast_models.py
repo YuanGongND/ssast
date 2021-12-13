@@ -203,7 +203,15 @@ class ASTModel(nn.Module):
             new_pos_embed = new_pos_embed.reshape(1, self.original_embedding_dim, num_patches).transpose(1, 2)
             self.v.pos_embed = nn.Parameter(torch.cat([self.v.pos_embed[:, :self.cls_token_num, :].detach(), new_pos_embed], dim=1))
 
-    #
+    # get the shape of intermediate representation.
+    def get_shape(self, fstride, tstride, input_fdim, input_tdim, fshape, tshape):
+        test_input = torch.randn(1, 1, input_fdim, input_tdim)
+        test_proj = nn.Conv2d(1, self.original_embedding_dim, kernel_size=(fshape, tshape), stride=(fstride, tstride))
+        test_out = test_proj(test_input)
+        f_dim = test_out.shape[2]
+        t_dim = test_out.shape[3]
+        return f_dim, t_dim
+
     def forward(self, x):
         # expect input x = (batch_size, time_frame_num, frequency_bins), e.g., (12, 1024, 128)
         x = x.unsqueeze(1)

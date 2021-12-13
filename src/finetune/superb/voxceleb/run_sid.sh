@@ -7,7 +7,7 @@
 #SBATCH -c 4
 #SBATCH -n 1
 #SBATCH --mem=30000
-#SBATCH --job-name="s3p-ks"
+#SBATCH --job-name="s3p-sid"
 #SBATCH --output=./log_%j.txt
 
 set -x
@@ -17,14 +17,14 @@ export TORCH_HOME=.
 mkdir exp
 
 # frame based SSAST
-mdl=ssast_frame_base_1s
-lr=5e-5
+mdl=ssast_frame_base_10s
+lr=1e-4
 ## patch based SSAST
-#mdl=ssast_patch_base_1s
+#mdl=ssast_patch_base_10s
 #lr=1e-4
 
-expname=ks_${mdl}_${lr}
+expname=sid_${mdl}_${lr}
 expdir=./exp/$expname
 mkdir -p $expdir
 
-python3 run_downstream.py -m train --expdir ${expdir} -n speech_commands -u $mdl -f -d speech_commands -c config_ks.yaml -s hidden_states -o config.optimizer.lr=$lr
+python3 run_downstream.py --expdir $expdir -m train -u $mdl -d voxceleb1 -c config_sid.yaml -s hidden_states -o config.optimizer.lr=${lr} -f

@@ -210,13 +210,47 @@ num_mel_bins=128
 
 ## Fine-tuning
 
-**PSLA training pipeline experiments** \
+### PSLA training pipeline experiments 
 * ESC-50. We suggest to start from ESC-50 experiments as our recipe is almost one click. `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 
 * Speech Commands V2-35. 
 * AudioSet. `src/finetune/esc50/audioset/`
 
 
-**SUPERB training pipeline experiments** \
+### SUPERB training pipeline experiments
+
+**Note:** The SUPERB package function has changed after our experiments. In the lastest version, the new [`get_downsample_rate`](https://github.com/s3prl/s3prl/issues/96) is no longer friendly to patch-based as patch-based AST does not process spectrogram in frame-by-frame manner. If you want to reproduce our experiments on patch-based AST, please download [the old version SUPERB](https://github.com/s3prl/s3prl/tree/099ce807a6ffa6bf2482ceecfcaf83dea23da355), or, if you are just interested in frame-based AST (which performs better on speech tasks), you can use the latest version of SUPERB withourt problem.
+
+We provide everything needed to reproduce our SUPERB experiments. The scripts are in `src/finetune/superb/`.
+
+First, download and install SUPERB package [[old, work for both patch and frame AST]](https://github.com/s3prl/s3prl/tree/099ce807a6ffa6bf2482ceecfcaf83dea23da355) [[latest, only work for frame SSAST]](https://github.com/s3prl/s3prl).
+```
+cd yoursuperbpath/s3prl-master/
+pip install -e ./
+```
+Second, modify the paths in `src/finetune/unstream/ast/hubconf.py` to your pretrained SSAST model absolute path, you can use our pretrained model.
+
+Then, copy our `src/finetune/unstream/ast` to the SUPERB upstream directory:
+```
+cp -r src/finetune/unstream/ast yoursuperbpath/s3prl-master/s3prl/upstream/
+```
+
+Third, change the dataset path in `src/finetune/superb/{speechcommands_v1, iemocap, voxceleb}/{config_ks.yaml, config_er.yaml, config_sid.yaml}`.
+
+Then, copy the downstream code and configuration to the SUPERB directory, e.g., for the speech commands task:
+```
+cp src/finetune/superb/speechcommands_v1/{run_ks.sh,config.yaml} yoursuperbpath/s3prl-master/s3prl/
+```
+Finally, run the training script:
+```
+cd yoursuperbpath/s3prl-master/s3prl/
+# for local user
+./run_ks.sh
+# or, for slurm user
+sbatch run_ks.sh
+```
+You will set the result  logs in `yoursuperbpath/s3prl-master/s3prl/exp/expname/log.log`
+
+
 
 **Fine-tune on custom dataset** \
 

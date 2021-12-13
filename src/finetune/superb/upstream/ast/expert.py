@@ -30,6 +30,9 @@ class UpstreamExpert(UpstreamBase):
             self.model = ASTModel(fshape=128, tshape=2, fstride=128, tstride=1, input_tdim=target_length, input_fdim=128,
                                   model_size=model_size, pretrain_stage=False, load_pretrained_mdl_path=pretrain_path)
 
+    def get_downsample_rates(self, key: str) -> int:
+        return 160
+
     def forward(self, wavs):
         features = [self.preprocessor(wav.unsqueeze(0)) for wav in wavs]
         features = torch.stack(features, dim=0)

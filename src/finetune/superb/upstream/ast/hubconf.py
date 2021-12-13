@@ -14,19 +14,19 @@ from .expert import UpstreamExpert as _UpstreamExpert
 # 1s for speech commands, 6s for IEMOCAP, 10s for SID
 def ssast_frame_base_1s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base_f'
-    kwargs['pretrain_path'] = './SSAST-Base-Frame-400.pth'
+    kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/ssast/pretrained_model/SSAST-Base-Frame-400.pth'
     kwargs["target_length"] = 100
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
 def ssast_frame_base_6s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base_f'
-    kwargs['pretrain_path'] = './SSAST-Base-Frame-400.pth'
+    kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/ssast/pretrained_model/SSAST-Base-Frame-400.pth'
     kwargs["target_length"] = 600
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
 def ssast_frame_base_10s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base_f'
-    kwargs['pretrain_path'] = './SSAST-Base-Frame-400.pth'
+    kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/ssast/pretrained_model/SSAST-Base-Frame-400.pth'
     kwargs["target_length"] = 1000
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
@@ -34,18 +34,18 @@ def ssast_frame_base_10s(ckpt, *args, **kwargs):
 # 1s for speech commands, 6s for IEMOCAP, 10s for SID
 def ssast_patch_base_1s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base_p'
-    kwargs['pretrain_path'] = './SSAST-Base-Patch-400.pth'
+    kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/ssast/pretrained_model/SSAST-Base-Patch-400.pth'
     kwargs["target_length"] = 100
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
 def ssast_patch_base_6s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base_p'
-    kwargs['pretrain_path'] = './SSAST-Base-Patch-400.pth'
+    kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/ssast/pretrained_model/SSAST-Base-Patch-400.pth'
     kwargs["target_length"] = 600
     return _UpstreamExpert(ckpt, *args, **kwargs)
 
 def ssast_patch_base_10s(ckpt, *args, **kwargs):
     kwargs['model_size'] = 'base_p'
-    kwargs['pretrain_path'] = './SSAST-Base-Patch-400.pth'
+    kwargs['pretrain_path'] = '/data/sls/scratch/yuangong/ssast/pretrained_model/SSAST-Base-Patch-400.pth'
     kwargs["target_length"] = 1000
     return _UpstreamExpert(ckpt, *args, **kwargs)

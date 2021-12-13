@@ -5,12 +5,10 @@
 # @Email   : yuangong@mit.edu
 # @File    : get_esc_summary.py
 
+# get summary of all esc exp results.
+
 import os
-import csv
 import numpy as np
-from pathlib import Path
-from matplotlib import pyplot as plt
-import pickle
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
@@ -20,9 +18,6 @@ root_path = '/data/sls/scratch/yuangong/ssast/src/finetune/esc50/exp/'
 exp_list = get_immediate_subdirectories(root_path)
 exp_list.sort()
 for exp in exp_list:
-    # if 'esc' in exp:
-    #     os.system('python get_esc_result.py --exp_path /data/sls/scratch/yuangong/aed-trans/exp/'+exp)
-
     if os.path.isfile(root_path + exp + '/result.csv'):
         try:
             print(exp)

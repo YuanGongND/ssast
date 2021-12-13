@@ -15,9 +15,24 @@ set -x
 . /data/sls/scratch/share-201907/slstoolchainrc
 source /data/sls/scratch/yuangong/sslast2/sslast2/bin/activate
 export TORCH_HOME=../../pretrained_models
+mkdir exp
 
-pretrain_exp=patch_tiny_400
-pretrain_epoch=999
+# prep esc50 dataset and download the pretrained model
+if [ -e data/datafiles ]
+then
+    echo "esc-50 already downloaded and processed."
+else
+    python prep_esc50.py
+fi
+if [ -e SSAST-Base-Patch-400.pth ]
+then
+    echo "pretrained model already downloaded."
+else
+    wget https://www.dropbox.com/s/ewrzpco95n9jdz6/SSAST-Base-Patch-400.pth?dl=1 -O SSAST-Base-Patch-400.pth
+fi
+
+pretrain_exp=
+pretrain_model=SSAST-Base-Patch-400
 
 dataset=esc50
 dataset_mean=-6.6268077
@@ -38,11 +53,11 @@ fstride=10
 tstride=10
 
 task=ft_avgtok
-model_size=tiny224
+model_size=base
 head_lr=1
 
-pretrain_path=/data/sls/scratch/yuangong/ssast/pretrained_model/${pretrain_exp}/audio_model.${pretrain_epoch}.pth
-base_exp_dir=./exp/test09-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_epoch}-${head_lr}x-noise${noise}-3
+pretrain_path=./${pretrain_exp}/${pretrain_model}.pth
+base_exp_dir=./exp/test01-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_model}-${head_lr}x-noise${noise}-2
 
 for((fold=1;fold<=5;fold++));
 do

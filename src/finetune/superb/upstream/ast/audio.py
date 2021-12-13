@@ -21,7 +21,6 @@ from torchaudio.compliance import kaldi
 WINDOW_TYPE = 'hanning'
 SAMPLE_RATE = 16000
 
-
 class CMVN(torch.jit.ScriptModule):
     __constants__ = ["mode", "dim", "eps"]
 
@@ -87,12 +86,7 @@ class FeatureExtractor(nn.Module):
                             frame_shift=10,
                             **self.kwargs)
 
-        # do nomalization
-        #print('new norm')
-        #y = (y + 6.845978) / (5.5654526 * 2)
         y = (y + 4.2677393) / (4.5689974 * 2)
-        #y = y / (4.5689974 * 2)
-
         p = self.target_length - y.shape[0]
 
         # cut and pad
@@ -104,7 +98,6 @@ class FeatureExtractor(nn.Module):
 
         # #CMVN
         if self.apply_cmvn:
-            #print('cmvn is used')
             y = y.transpose(0, 1).unsqueeze(0)  # TxD -> 1xDxT
             y = self.cmvn(y)
             y = y.squeeze(0).transpose(0, 1)  # 1xDxT -> TxD

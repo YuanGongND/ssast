@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH -p sm
-#SBATCH -x sls-sm-1,sls-2080-[1,3],sls-1080-[2,3],sls-sm-5
-##SBATCH -p gpu
-##SBATCH -x sls-titan-[0-2]
+##SBATCH -p sm
+##SBATCH -x sls-sm-1,sls-2080-[1,3],sls-1080-[2,3],sls-sm-5
+#SBATCH -p gpu
+#SBATCH -x sls-titan-[0-2]
 #SBATCH --gres=gpu:4
 #SBATCH -c 4
 #SBATCH -n 1
@@ -15,9 +15,23 @@ set -x
 . /data/sls/scratch/share-201907/slstoolchainrc
 source /data/sls/scratch/yuangong/sslast2/sslast2/bin/activate
 export TORCH_HOME=../../pretrained_models
+mkdir exp
 
-pretrain_exp=frame_base_400
-pretrain_epoch=999
+if [ -e data/datafiles ]
+then
+    echo "esc-50 already downloaded and processed."
+else
+    python prep_esc50.py
+fi
+if [ -e SSAST-Base-Frame-400.pth ]
+then
+    echo "pretrained model already downloaded."
+else
+    wget https://www.dropbox.com/s/nx6nl4d4bl71sm8/SSAST-Base-Frame-400.pth?dl=1 -O SSAST-Base-Frame-400.pth
+fi
+
+pretrain_exp=
+pretrain_model=SSAST-Base-Frame-400
 
 dataset=esc50
 dataset_mean=-6.6268077
@@ -38,11 +52,11 @@ fstride=128
 tstride=1
 
 task=ft_avgtok
-model_size=base384
+model_size=base
 head_lr=1
 
-pretrain_path=/data/sls/scratch/yuangong/ssast/pretrained_model/${pretrain_exp}/audio_model.${pretrain_epoch}.pth
-base_exp_dir=./exp/test03-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_epoch}-${head_lr}x-noise${noise}
+pretrain_path=./${pretrain_exp}/${pretrain_model}.pth
+base_exp_dir=./exp/test01-${dataset}-f$fstride-t$tstride-b$batch_size-lr${lr}-${task}-${model_size}-$pretrain_exp-${pretrain_model}-${head_lr}x-noise${noise}
 
 for((fold=1;fold<=5;fold++));
 do
@@ -63,7 +77,7 @@ do
   --pretrain False --pretrained_mdl_path ${pretrain_path} \
   --dataset_mean ${dataset_mean} --dataset_std ${dataset_std} --target_length ${target_length} \
   --num_mel_bins 128 --head_lr ${head_lr} --noise ${noise} \
-  --lrscheduler_start 5 --lrscheduler_step 1 --lrscheduler_decay 0.85 --wa False --loss CE --metrics acc
+  --lrscheduler_start 6 --lrscheduler_step 1 --lrscheduler_decay 0.85 --wa False --loss CE --metrics acc
 done
 
 python ./get_esc_result.py --exp_path ${base_exp_dir}

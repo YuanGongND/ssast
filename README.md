@@ -183,10 +183,40 @@ Examples: we provide our script to prepare data for a set of datasets.
 
 ## Self-Supervised Pretraining
 
+**Reproduce our experiments** \
 The pretraining scripts are in `src/pretrain/`, we provide scripts to pretrain tiny/base and patch-based/frame-based AST model. The one we use for our main model in the paper is ``src/pretrain/run_mask_patch.sh``.
-The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the data as mentioned in [#Data-Preparation].
+The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the data as mentioned in [Data Preparation](#Data-Preparation).
+
+**Pretrain on custom dataset** \
+First, prepare the data files (the json and csv file) as described in [Data Preparation](#Data-Preparation). \
+Second, modify our pretraining scripts are in `src/pretrain/`. Basically, the only things need to be changed is the following.
+```python
+# your data json files
+tr_data=/data/sls/scratch/yuangong/sslast2/src/prep_data/audioset_librispeech.json
+te_data=/data/sls/scratch/yuangong/audioset/datafiles/eval_data.json
+# normalization stats, the mean and std of the entire dataset.
+# if the custom dataset is also speech/audio, it is fine to use the same norm stats with us.
+# check https://github.com/YuanGongND/ast/blob/master/src/get_norm_stats.py
+dataset_mean=-4.2677393
+dataset_std=4.5689974
+# audio length in frames, dataloader cut/pad all audios to this length
+target_length=1024
+# the number of frequency bins of your spectrogram. 
+# if you want to train a frame-based SSAST, you need to change fshape with num_mel_bins
+num_mel_bins=128
+```
 
 ## Fine-tuning
+
+**PSLA training pipeline experiments** \
+* ESC-50. We suggest to start from ESC-50 experiments as our recipe is almost one click. `src/finetune/esc50/{run_esc_patch, run_esc_frame}.sh` for fine-tune patch-based and frame-based SSAST, respectively. 
+* Speech Commands V2-35. 
+* AudioSet. `src/finetune/esc50/audioset/`
+
+
+**SUPERB training pipeline experiments** \
+
+**Fine-tune on custom dataset** \
 
 ## Pretrained-Models
 

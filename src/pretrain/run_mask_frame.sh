@@ -28,6 +28,7 @@ te_data=/data/sls/scratch/yuangong/audioset/datafiles/eval_data.json
 dataset_mean=-4.2677393
 dataset_std=4.5689974
 target_length=1024
+num_mel_bins=128
 
 model_size=base
 # no patch split overlap
@@ -56,6 +57,6 @@ CUDA_CACHE_DISABLE=1 python -W ignore ../run.py --dataset ${dataset} \
 --lr $lr --n-epochs ${epoch} --batch-size $batch_size --save_model False \
 --freqm $freqm --timem $timem --mixup ${mixup} --bal ${bal} \
 --tstride $tstride --fstride $fstride --fshape ${fshape} --tshape ${tshape} \
---dataset_mean ${dataset_mean} --dataset_std ${dataset_std} --target_length ${target_length} --num_mel_bins 128 \
+--dataset_mean ${dataset_mean} --dataset_std ${dataset_std} --target_length ${target_length} --num_mel_bins ${num_mel_bins} \
 --model_size ${model_size} --mask_patch ${mask_patch} --n-print-steps 100 \
 --task ${task} --lr_patience ${lr_patience} --epoch_iter 4000

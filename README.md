@@ -189,7 +189,9 @@ The scripts were tested on 4 GTX TITAN GPUs with 12GB memory. Please prepare the
 
 **Pretrain on custom dataset** \
 First, prepare the data files (the json and csv file) as described in [Data Preparation](#Data-Preparation). \
-Second, modify our pretraining scripts are in `src/pretrain/`. Basically, the only things need to be changed is the following.
+Second, modify our pretraining scripts are in `src/pretrain/`. Unless you have a resource constraint, it is always better to pretrain a base model than a tiny/small model. If your downstream task is speech, we suggest to train a frame-based SSAST (i.e., follow `run_mask_frame.sh`), if the downstream task is audio, we suggest to train a patch-based SSAST (i.e., follow `run_mask_patch.sh`). It is good to train and compare both. 
+
+From `src/pretrain/run_mask_{frame,patch}.sh`, basically, the only things need to be changed are the data part.
 ```python
 # your data json files
 tr_data=/data/sls/scratch/yuangong/sslast2/src/prep_data/audioset_librispeech.json
@@ -232,7 +234,7 @@ We provide the following self-supervised pretrained models. All models are train
 |  [SSAST-Tiny-Patch-400](https://www.dropbox.com/s/fkbtf78y94113wz/SSAST-Tiny-Patch-400.pth?dl=1) |        16       |        16       |         400        |    Tiny    |    6M   |          53.3          |           75.7          |
 |  [SSAST-Tiny-Frame-400](https://www.dropbox.com/s/rx7g60ruzawffzv/SSAST-Tiny-Frame-400.pth?dl=1) |       128       |        2        |         400        |    Tiny    |    6M   |          47.8          |          untested          |
 
-Above links are dropbox direct download links (i.e., wget works). For those don't have access to Dropbox, use a VPN or the [OneDrive Links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/EuAuTEZNYPhOmlLFFjRFvGUBcgnIXBqFgFE33GDK69h-Zw?e=d3MEgT).
+Above links are dropbox direct download links (i.e., wget works). For those don't have access to Dropbox, use a VPN or use the [OneDrive Links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/EuAuTEZNYPhOmlLFFjRFvGUBcgnIXBqFgFE33GDK69h-Zw?e=d3MEgT).
 
  ## Contact
 If you have a question, please bring up an issue (preferred) or send me an email yuangong@mit.edu.

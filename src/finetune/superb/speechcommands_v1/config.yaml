@@ -1,0 +1,36 @@
+runner:
+  total_steps: 20000
+  gradient_clipping: 1
+  gradient_accumulate_steps: 1
+
+  log_step: 100
+  eval_step: 500
+  save_step: 1000
+  max_keep: 1
+  eval_dataloaders:
+    - dev
+    - test
+
+optimizer:
+  name: TorchOptim
+  torch_optim_name: Adam
+  lr: 1.0e-4
+
+# comment the whole scheduler config block
+# to disable learning rate scheduling
+# scheduler:
+#   name: linear_schedule_with_warmup
+#   num_warmup_steps: 1400
+
+downstream_expert:
+  datarc:
+    speech_commands_root: /data/sls/scratch/yuangong/sslast2/src/s3prl-master/s3prl/downstream/speech_commands/sc1/
+    speech_commands_test_root: /data/sls/scratch/yuangong/sslast2/src/s3prl-master/s3prl/downstream/speech_commands/sc1te/
+    num_workers: 8
+    batch_size: 32
+
+  modelrc:
+    projector_dim: 256
+    select: UtteranceLevel
+    UtteranceLevel:
+      pooling: MeanPooling

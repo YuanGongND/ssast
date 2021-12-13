@@ -1,0 +1,49 @@
+runner:
+  total_steps: 10000
+  gradient_clipping: 1
+  gradient_accumulate_steps: 8
+
+  log_step: 500
+  eval_step: 200
+  save_step: 1000
+  max_keep: 1
+  eval_dataloaders:
+    - dev
+    - test
+
+optimizer:
+  name: TorchOptim
+  torch_optim_name: Adam
+  lr: 1.0e-4
+
+# comment the whole scheduler config block
+# to disable learning rate scheduling
+# scheduler:
+#   name: linear_schedule_with_warmup
+#   num_warmup_steps: 1400
+
+downstream_expert:
+  datarc:
+    root: /data/sls/temp/clai24/data/IEMOCAP
+    test_fold: fold1
+    pre_load: True
+    train_batch_size: 4
+    eval_batch_size: 4
+    num_workers: 12
+    valid_ratio: 0.2
+
+  modelrc:
+    projector_dim: 256
+    select: UtteranceLevel
+
+    UtteranceLevel:
+      pooling: MeanPooling
+
+    DeepModel:
+      model_type: CNNSelfAttention
+      input_dim: 256
+      hidden_dim: 80
+      kernel_size: 5
+      padding: 2
+      pooling: 5
+      dropout: 0.4

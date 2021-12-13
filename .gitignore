@@ -7,3 +7,4 @@ pretrained_model/*
 !pretrained_model/README.md
 src/models/check_load_model.py
 src/models/copy_process_pretrain.py
+src/finetune/superb/s3prl-master/*

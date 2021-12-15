@@ -13,7 +13,7 @@
 
 <p align="center"><img src="https://github.com/YuanGongND/ssast/blob/main/figure/ssast_ilus.png?raw=true" alt="Illustration of AST." width="300"/></p>
 
-This repository contains the official implementation (in PyTorch) of the **Self-Supervised Audio Spectrogram Transformer (SSAST)** proposed in the AAAI 2022 paper [SSAST: Self-Supervised Audio Spectrogram Transformer](https://arxiv.org/abs/2110.09784) (Yuan Gong, Cheng-I Jeff Lai, Yu-An Chung, James Glass; MIT CSAIL).  
+This repository contains the official implementation (in PyTorch) of the **Self-Supervised Audio Spectrogram Transformer (SSAST)** proposed in the AAAI 2022 paper [SSAST: Self-Supervised Audio Spectrogram Transformer](https://arxiv.org/abs/2110.09784) ([Yuan Gong](https://yuangongnd.github.io/), [Cheng-I Jeff Lai](http://people.csail.mit.edu/clai24/), [Yu-An Chung](http://people.csail.mit.edu/andyyuan/), [James Glass](https://www.csail.mit.edu/person/jim-glass); MIT CSAIL).  
 
 SSAST is the first **patch-based** joint discriminative and generative self-supervised learning framework, and also the first self-supervised learning framework for AST. SSAST significantly boosts AST performance on all downstream tasks we evaluated with an average improvement of 60.9%, leading to similar or even better results than a supervised pretrained AST. SSAST can be used as a drop-in replacement of previous ImageNet (supervised) pretrained AST, and has the advantage of 1) no labeled data is used; 2) flexible patch size and shape, ImagenNet pretraining only supports square patches; and 3) better performance on many tasks, in particular speech tasks.
 
@@ -223,7 +223,7 @@ num_mel_bins=128
 
 ### SUPERB training pipeline experiments
 
-**Note:** The SUPERB package function has changed after our experiments. In the lastest version, the new [`get_downsample_rate`](https://github.com/s3prl/s3prl/issues/96) is no longer friendly to patch-based as patch-based AST does not process spectrogram in frame-by-frame manner. If you want to reproduce our experiments on patch-based AST, please download [the old version SUPERB](https://github.com/s3prl/s3prl/tree/099ce807a6ffa6bf2482ceecfcaf83dea23da355), or, if you are just interested in frame-based AST (which performs better on speech tasks), you can use the latest version of SUPERB withourt problem.
+**Note:** The SUPERB package function has changed after our experiments. In the lastest version, the new [`get_downsample_rate`](https://github.com/s3prl/s3prl/issues/96) is not friendly to patch-based AST as patch-based AST does not process spectrogram in frame-by-frame manner. If you want to reproduce our experiments on patch-based AST, please download [the old version SUPERB](https://github.com/s3prl/s3prl/tree/099ce807a6ffa6bf2482ceecfcaf83dea23da355), or, if you are only interested in frame-based AST (which performs better on speech tasks), you can use the latest version of SUPERB without problem.
 
 We provide everything needed to reproduce our SUPERB experiments. The scripts are in `src/finetune/superb/`.
 
@@ -253,10 +253,10 @@ cd yoursuperbpath/s3prl-master/s3prl/
 # or, for slurm user
 sbatch run_ks.sh
 ```
-You will set the result  logs in `yoursuperbpath/s3prl-master/s3prl/exp/expname/log.log`
+You can find the result logs in `yoursuperbpath/s3prl-master/s3prl/exp/expname/log.log`
 
 ### Fine-tune on custom dataset
-It is easy to fine-tune on a new dataset. In general, PSLA training pipeline is strong. You can start from any of the AudioSet, ESC-50, and SpeechCommands recipes (`run_sc.sh`, `run_esc_{frame,patch}.sh`, `run_as.sh`) and search the hyper-parameters. The only thing you need to modify is the shell script. For speech task, we suggest to fine-tune a frame-based SSAST, for audio task, we suggest to fine-tune a patch-based SSAST.
+It is easy to fine-tune on a new dataset. In general, PSLA training pipeline is stronger. You can start from any of the AudioSet, ESC-50, and SpeechCommands recipes (`run_sc.sh`, `run_esc_{frame,patch}.sh`, `run_as.sh`) and search the hyper-parameters. The only thing you need to modify is the shell script. For speech task, we suggest to fine-tune a frame-based SSAST, for audio task, we suggest to fine-tune a patch-based SSAST.
 
 ## Pretrained-Models
 

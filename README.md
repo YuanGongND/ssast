@@ -11,7 +11,7 @@
 
 ## Introduction  
 
-<p align="center"><img src="https://github.com/YuanGongND/ssast/blob/main/figure/10854_ssast.png?raw=true" alt="Illustration of AST." width="300"/></p>
+<p align="center"><img src="https://github.com/YuanGongND/ssast/blob/main/figure/10854_ssast.png?raw=true" alt="Illustration of AST." width="600"/></p>
 
 This repository contains the official implementation (in PyTorch) of the **Self-Supervised Audio Spectrogram Transformer (SSAST)** proposed in the AAAI 2022 paper [SSAST: Self-Supervised Audio Spectrogram Transformer](https://arxiv.org/abs/2110.09784) ([Yuan Gong](https://yuangongnd.github.io/), [Cheng-I Jeff Lai](http://people.csail.mit.edu/clai24/), [Yu-An Chung](http://people.csail.mit.edu/andyyuan/), [James Glass](https://www.csail.mit.edu/person/jim-glass); MIT CSAIL).  
 

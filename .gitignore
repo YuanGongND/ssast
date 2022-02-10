@@ -6,6 +6,7 @@
 *.DS_Store
 *.requirements_ssast.txt
 figure/*
+!figure/10854_ssast.pdf
 pretrained_model/*
 !pretrained_model/README.md
 src/models/check_load_model.py

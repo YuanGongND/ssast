@@ -7,6 +7,7 @@
 *.requirements_ssast.txt
 figure/*
 !figure/10854_ssast.pdf
+!figure/10854_ssast.png
 pretrained_model/*
 !pretrained_model/README.md
 src/models/check_load_model.py

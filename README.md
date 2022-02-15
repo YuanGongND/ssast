@@ -11,7 +11,7 @@
  - [Contact](#Contact)
 
 ## News
-Feb 2022: I will present SSAST at AAAI 2022 at 7:45 PM -9:30 PM on February 25th and then 3:45 AM - 5:30 AM on February 28th. 
+Feb 2022: I will present SSAST at [AAAI 2022](https://aaai.org/Conferences/AAAI-22/) at 7:45 PM -9:30 PM (EST) on February 25th and then 3:45 AM - 5:30 AM (EST) on February 28th. 
 
 ## Introduction  
 

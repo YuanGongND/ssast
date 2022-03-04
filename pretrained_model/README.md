@@ -33,4 +33,4 @@ We set the 16x16 patch based AST pretrained with 400 masked patches, joint discr
 |           5          |   Pretrained w/ AudioSet-2M   |   [Link](https://www.dropbox.com/s/m9p782df3faql1q/audio_model_as.pth?dl=1)   |
 |           6          |   Pretrained Librispeech960   |   [Link](https://www.dropbox.com/s/f4bn2qelu3m8ksu/audio_model_librispeech.pth?dl=1)   |
 
-Above links are dropbox direct download links (i.e., wget works). For those don't have access to Dropbox, use a VPN or use the [OneDrive Links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/EuAuTEZNYPhOmlLFFjRFvGUBcgnIXBqFgFE33GDK69h-Zw?e=d3MEgT) or [腾讯微云链接们](https://share.weiyun.com/C4GoAcv0).
+Above links are dropbox direct download links (i.e., wget works), no Dropbox registration or sign in needed. For those don't have access to Dropbox, use a VPN or use the [OneDrive Links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/EuAuTEZNYPhOmlLFFjRFvGUBcgnIXBqFgFE33GDK69h-Zw?e=d3MEgT) or [腾讯微云链接们](https://share.weiyun.com/C4GoAcv0).

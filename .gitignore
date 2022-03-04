@@ -8,6 +8,7 @@
 figure/*
 !figure/10854_ssast.pdf
 !figure/10854_ssast.png
+!figure/ablation.jpg
 pretrained_model/*
 !pretrained_model/README.md
 src/models/check_load_model.py

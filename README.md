@@ -284,6 +284,9 @@ Following models does not have best performance, we release them for analysis pu
 | [SSAST-Tiny-Frame-400](https://www.dropbox.com/s/rx7g60ruzawffzv/SSAST-Tiny-Frame-400.pth?dl=1)   | AudioSet + Librispeech | 128             | 2               | 400               | Tiny (6M)   | 47.8                   | untested                |
 
 Following models are used in our ablation study in Table 2 of the paper, they does not have best performance, we release them for analysis purpose.
+
+<p align="center"><img src="https://github.com/YuanGongND/ssast/raw/main/figure/ablation.jpg?raw=true" alt="Ablation Study Table" width="800"/></p>
+
 We set the 16x16 patch based AST pretrained with 400 masked patches, joint discriminative and generative objectives, on both AudioSet-2M and Librispeech as the base model. We then change one factor at a time to observe the performance impact. 
 
 | ID in Ablation Study |             Model             | Download |

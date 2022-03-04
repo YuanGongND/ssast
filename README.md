@@ -289,6 +289,8 @@ Following models are used in our ablation study in Table 2 of the paper, they do
 
 We set the 16x16 patch based AST pretrained with 400 masked patches, joint discriminative and generative objectives, on both AudioSet-2M and Librispeech as the base model. We then **change one factor at a time to observe the performance impact**. 
 
+<center>
+
 | ID in Ablation Study |             Model             | Download |
 |:--------------------:|:-----------------------------:|:--------:|
 |           1          |       100 Masked Patches      |   [Link](https://www.dropbox.com/s/0oyrtfbjzkwho2p/audio_model_100m.pth?dl=1)   |
@@ -299,6 +301,8 @@ We set the 16x16 patch based AST pretrained with 400 masked patches, joint discr
 |           6          |   Pretrained Librispeech960   |   [Link](https://www.dropbox.com/s/f4bn2qelu3m8ksu/audio_model_librispeech.pth?dl=1)   |
 
 Above links are dropbox direct download links (i.e., wget works). For those don't have access to Dropbox, use a VPN or use the [OneDrive Links](https://mitprod-my.sharepoint.com/:f:/g/personal/yuangong_mit_edu/EuAuTEZNYPhOmlLFFjRFvGUBcgnIXBqFgFE33GDK69h-Zw?e=d3MEgT).
+
+</center>
 
  ## Contact
 If you have a question, please bring up an issue (preferred) or send me an email yuangong@mit.edu.

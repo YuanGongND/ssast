@@ -1,3 +1,9 @@
+<style>
+table {
+margin: auto;
+}
+</style>
+
 # SSAST: Self-Supervised Audio Spectrogram Transformer
  - [News](#News)
  - [Introduction](#Introduction)

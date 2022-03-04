@@ -20,7 +20,7 @@ Following models does not have best performance, we release them for analysis pu
 
 Following models are used in our ablation study in Table 2 of the paper, they does not have best performance, we release them for analysis purpose only.
 
-<p align="center"><img src="https://github.com/YuanGongND/ssast/raw/main/figure/ablation.jpg?raw=true" alt="Ablation Study Table" width="800"/></p>
+<p align="center"><img src="https://github.com/YuanGongND/ssast/raw/main/figure/ablation.jpg?raw=true" alt="Ablation Study Table" width="400"/></p>
 
 We set the 16x16 patch based AST pretrained with 400 masked patches, joint discriminative and generative objectives, on both AudioSet-2M and Librispeech as the base model. We then **change one factor at a time to observe the performance impact**. 
 

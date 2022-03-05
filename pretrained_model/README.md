@@ -1,5 +1,5 @@
 
-We provide the following self-supervised pretrained models. All models are trained with full AudioSet + Librispeech. Click the model name to download. Tiny model should be able to pretrain and fine-tune on an 8GB GPU with a reasonable batch size.
+We provide the following self-supervised pretrained models. All models are trained with full AudioSet + Librispeech unless otherwise indicated. Click the model name to download. Tiny model should be able to pretrain and fine-tune on an 8GB GPU with a reasonable batch size.
 
 For best performance, you should use either of the following models, patch-based AST is better for audio tasks, frame-based AST is better for speech tasks.
 

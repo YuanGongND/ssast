@@ -11,6 +11,8 @@
  - [Contact](#Contact)
 
 ## News
+March, 2022: We released a new preprint [*CMKD: CNN/Transformer-Based Cross-Model Knowledge Distillation for Audio Classification*](https://arxiv.org/abs/2203.06760), where we proposed a knowledge distillation based method to further improve the AST model performance without changing its architecture. This method can be applied in the fine-tuning stage of SSAST.
+
 Feb 2022: I will present SSAST at [AAAI 2022](https://aaai.org/Conferences/AAAI-22/) at 12:00 PM - 1:45 PM (EST) on February 25th and then 7:45 PM - 9:30 PM (EST) on February 27th. 
 
 ## Introduction  

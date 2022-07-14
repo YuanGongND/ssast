@@ -27,7 +27,7 @@ SSAST is the first **patch-based** joint discriminative and generative self-supe
 Please cite our paper if you find this repository useful. 
 ```  
 @inproceedings{gong2022ssast,
-  title={Ssast: Self-supervised audio spectrogram transformer},
+  title={SSAST: Self-supervised audio spectrogram transformer},
   author={Gong, Yuan and Lai, Cheng-I and Chung, Yu-An and Glass, James},
   booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
   volume={36},

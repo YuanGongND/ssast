@@ -36,6 +36,16 @@ Please cite our paper if you find this repository useful.
   year={2022}
 }
 ```  
+```  
+@inproceedings{gong21b_interspeech,
+  author={Yuan Gong and Yu-An Chung and James Glass},
+  title={{AST: Audio Spectrogram Transformer}},
+  year=2021,
+  booktitle={Proc. Interspeech 2021},
+  pages={571--575},
+  doi={10.21437/Interspeech.2021-698}
+}
+```  
 
   
 ## Getting Started  

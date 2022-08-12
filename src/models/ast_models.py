@@ -346,7 +346,7 @@ class ASTModel(nn.Module):
         correct = torch.tensor(0.0).to(x.device)
         for i in np.arange(0, B):
             # negative samples are from the same batch
-            # equation (1) of the ssast paper
+            # 8/12/2022: has a difference with equation (1) in the ssast paper but (likely) performance-wise similar, see https://github.com/YuanGongND/ssast/issues/13
             total = torch.mm(encode_samples[i], torch.transpose(pred[i], 0, 1))  # e.g. size 100*100
             correct += torch.sum(torch.eq(torch.argmax(self.softmax(total), dim=0), torch.arange(0, mask_patch, device=x.device)))  # correct is a tensor
             nce += torch.sum(torch.diag(self.lsoftmax(total)))  # nce is a tensor
